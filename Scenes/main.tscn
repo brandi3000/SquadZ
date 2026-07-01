@@ -1,0 +1,78 @@
+[gd_scene format=3 uid="uid://dho1yi2j72kew"]
+
+[ext_resource type="Script" uid="uid://hwtko6kkwqeq" path="res://Scripts/SelectionManager.cs" id="1_jjgbg"]
+[ext_resource type="Script" uid="uid://ds2f3pwflm2t" path="res://Scripts/SpawnManager.cs" id="1_jjvhh"]
+[ext_resource type="PackedScene" uid="uid://bxrj1o0inpm46" path="res://Scenes/Soldier.tscn" id="2_bo1nx"]
+[ext_resource type="PackedScene" uid="uid://4uyghg1kqkd3" path="res://Scenes/Zombie.tscn" id="3_jjvhh"]
+[ext_resource type="Script" uid="uid://cfhtivp3iantm" path="res://Scripts/Base.cs" id="5_kry3j"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_kry3j"]
+size = Vector2(148, 661.5)
+
+[node name="Main" type="Node2D" unique_id=312764592]
+position = Vector2(-4, -1)
+
+[node name="Ground" type="ColorRect" parent="." unique_id=616997217]
+offset_left = 8.0
+offset_right = 1177.0
+offset_bottom = 662.0
+color = Color(0.3372549, 0.3019608, 0, 1)
+
+[node name="Units" type="Node2D" parent="." unique_id=276039669]
+
+[node name="Soldier" parent="Units" unique_id=1858594079 instance=ExtResource("2_bo1nx")]
+position = Vector2(962, 369)
+
+[node name="Soldier2" parent="Units" unique_id=1854766 instance=ExtResource("2_bo1nx")]
+position = Vector2(965, 192)
+
+[node name="Soldier3" parent="Units" unique_id=28694795 instance=ExtResource("2_bo1nx")]
+position = Vector2(958, 521)
+
+[node name="Enemies" type="Node2D" parent="." unique_id=1080491660]
+
+[node name="Zombie" parent="Enemies" unique_id=1601369578 instance=ExtResource("3_jjvhh")]
+position = Vector2(544, 240)
+
+[node name="SelectionManager" type="Node" parent="." unique_id=298678029]
+script = ExtResource("1_jjgbg")
+UnitsContainerPath = NodePath("../Units")
+
+[node name="SpawnManager" type="Node" parent="." unique_id=1731161777]
+script = ExtResource("1_jjvhh")
+ZombieScene = ExtResource("3_jjvhh")
+SpawnPointPaths = Array[NodePath]([NodePath("../SpawnNorth"), NodePath("../SpawnSouth"), NodePath("../SpawnEast"), NodePath("../SpawnWest")])
+EnemiesContainerPath = NodePath("../Enemies")
+
+[node name="UI" type="CanvasLayer" parent="." unique_id=1259669432]
+
+[node name="SpawnNorth" type="Marker2D" parent="." unique_id=1514639352]
+position = Vector2(650, 70)
+gizmo_extents = 307.2
+
+[node name="SpawnSouth" type="Marker2D" parent="." unique_id=989471871]
+position = Vector2(570, 583)
+gizmo_extents = 461.0
+
+[node name="SpawnEast" type="Marker2D" parent="." unique_id=1191773032]
+position = Vector2(598, 425)
+gizmo_extents = 370.1
+
+[node name="SpawnWest" type="Marker2D" parent="." unique_id=300658428]
+position = Vector2(112, 376)
+gizmo_extents = 405.1
+
+[node name="Base" type="StaticBody2D" parent="." unique_id=1456946549]
+position = Vector2(1087, 340)
+script = ExtResource("5_kry3j")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Base" unique_id=924104768]
+position = Vector2(9, -7)
+shape = SubResource("RectangleShape2D_kry3j")
+
+[node name="ColorRect" type="ColorRect" parent="Base" unique_id=1064879976]
+offset_left = -41.0
+offset_top = -326.0
+offset_right = 51.0
+offset_bottom = 339.0
+color = Color(0.38445798, 0.14056447, 0.19657516, 1)

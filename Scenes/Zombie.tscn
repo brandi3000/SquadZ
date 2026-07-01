@@ -1,0 +1,39 @@
+[gd_scene format=3 uid="uid://4uyghg1kqkd3"]
+
+[ext_resource type="Script" uid="uid://c880qersnltyd" path="res://Scripts/Zombie.cs" id="1_mauhj"]
+[ext_resource type="Script" uid="uid://blalav6q1wujj" path="res://Scripts/Health.cs" id="2_h15oy"]
+[ext_resource type="Texture2D" uid="uid://dl23i6qmyqxyp" path="res://Assets/images.png" id="3_yf4vm"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_yf4vm"]
+radius = 50.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_mntmy"]
+radius = 200.0
+
+[node name="Zombie" type="CharacterBody2D" unique_id=1601369578]
+script = ExtResource("1_mauhj")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1373852216]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1934849071]
+shape = SubResource("CircleShape2D_yf4vm")
+
+[node name="DetectionArea" type="Area2D" parent="." unique_id=1093289494]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DetectionArea" unique_id=396373821]
+shape = SubResource("CircleShape2D_mntmy")
+
+[node name="Health" type="Node" parent="." unique_id=35853765]
+script = ExtResource("2_h15oy")
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=169529218]
+offset_left = -11.0
+offset_top = -11.0
+offset_right = 11.0
+offset_bottom = 11.0
+metadata/_edit_use_anchors_ = true
+
+[node name="Sprite2D2" type="Sprite2D" parent="." unique_id=1582101565]
+position = Vector2(-1.0000014, 1.0000002)
+scale = Vector2(0.34400004, 0.26373625)
+texture = ExtResource("3_yf4vm")

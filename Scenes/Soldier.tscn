@@ -1,0 +1,47 @@
+[gd_scene format=3 uid="uid://bxrj1o0inpm46"]
+
+[ext_resource type="Script" uid="uid://dud2iutf81j5k" path="res://Scripts/Soldier.cs" id="1_y35nx"]
+[ext_resource type="Script" uid="uid://blalav6q1wujj" path="res://Scripts/Health.cs" id="2_8pnfg"]
+[ext_resource type="Texture2D" uid="uid://bki8o1hn1rmsv" path="res://Assets/Flag_of_the_NSDAP_(1920–1945).svg" id="3_j6lg2"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_l0vb8"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_8pnfg"]
+radius = 100.0
+
+[node name="Soldier" type="CharacterBody2D" unique_id=1858594079]
+script = ExtResource("1_y35nx")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1502339381]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=53540527]
+scale = Vector2(2, 2)
+shape = SubResource("CircleShape2D_l0vb8")
+
+[node name="DetectionArea" type="Area2D" parent="." unique_id=2054027281]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DetectionArea" unique_id=1094001034]
+shape = SubResource("CircleShape2D_8pnfg")
+
+[node name="SelectionRing" type="Node2D" parent="." unique_id=1489563676]
+
+[node name="SelectionRect" type="ColorRect" parent="SelectionRing" unique_id=720992077]
+offset_left = -11.0
+offset_top = -11.0
+offset_right = 11.0
+offset_bottom = 11.0
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=1387517480]
+offset_left = -9.0
+offset_top = -9.0
+offset_right = 9.0
+offset_bottom = 9.0
+color = Color(0, 0.75415635, 0.12868717, 1)
+
+[node name="Health" type="Node" parent="." unique_id=601051267]
+script = ExtResource("2_8pnfg")
+
+[node name="Sprite2D2" type="Sprite2D" parent="." unique_id=761583011]
+position = Vector2(-1, 1)
+scale = Vector2(0.0275, 0.04874999)
+texture = ExtResource("3_j6lg2")
