@@ -11,8 +11,8 @@ config_version=5
 [application]
 
 config/name="SquadZ!"
-run/main_scene="uid://4uyghg1kqkd3"
-config/features=PackedStringArray("4.6", "C#", "Forward Plus")
+run/main_scene="uid://dho1yi2j72kew"
+config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 config/icon="res://Assets/icon.svg"
 
 [dotnet]

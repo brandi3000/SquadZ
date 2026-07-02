@@ -31,9 +31,6 @@ position = Vector2(958, 521)
 
 [node name="Enemies" type="Node2D" parent="." unique_id=1080491660]
 
-[node name="Zombie" parent="Enemies" unique_id=1601369578 instance=ExtResource("3_jjvhh")]
-position = Vector2(544, 240)
-
 [node name="SelectionManager" type="Node" parent="." unique_id=298678029]
 script = ExtResource("1_jjgbg")
 UnitsContainerPath = NodePath("../Units")

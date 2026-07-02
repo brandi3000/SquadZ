@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bki8o1hn1rmsv"
-path="res://.godot/imported/Flag_of_the_NSDAP_(1920–1945).svg-7c20608b53a7571783f0946147a04d69.ctex"
+uid="uid://6gsi2vbn85vq"
+path="res://.godot/imported/Sprite-0010.png-07b76818363ce91ed00c9f3e9d087abd.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/Flag_of_the_NSDAP_(1920–1945).svg"
-dest_files=["res://.godot/imported/Flag_of_the_NSDAP_(1920–1945).svg-7c20608b53a7571783f0946147a04d69.ctex"]
+source_file="res://Assets/Sprite-0010.png"
+dest_files=["res://.godot/imported/Sprite-0010.png-07b76818363ce91ed00c9f3e9d087abd.ctex"]
 
 [params]
 
@@ -38,6 +38,3 @@ process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
 detect_3d/compress_to=1
-svg/scale=1.0
-editor/scale_with_editor_scale=false
-editor/convert_colors_with_editor_theme=false

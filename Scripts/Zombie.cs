@@ -11,8 +11,10 @@ public partial class Zombie : CharacterBody2D
 	private Node2D _target;
 	private Health _health;
 
-	// 🔄 NUEVO: referencia al target por defecto (la base)
 	private Node2D _defaultTarget;
+
+	private Node2D _visualNode;
+	private ProgressBar _healthBar;
 
 	[Signal] public delegate void DiedEventHandler();
 
@@ -23,26 +25,43 @@ public partial class Zombie : CharacterBody2D
 		_health = GetNode<Health>("Health");
 		_health.Died += OnHealthDepleted;
 
-		var detectionArea = GetNode<Area2D>("DetectionArea");
+        _visualNode = GetNode<Node2D>("Sprite2D");
+
+        var detectionArea = GetNode<Area2D>("DetectionArea");
 		detectionArea.BodyEntered += OnBodyEnteredDetectionArea;
 		detectionArea.BodyExited  += OnBodyExitedDetectionArea;
 
-		// 🔄 NUEVO: buscamos la base en el grupo al iniciar
 		var baseNodes = GetTree().GetNodesInGroup("base");
 		if (baseNodes.Count > 0)
 			_defaultTarget = baseNodes[0] as Node2D;
-	}
+
+        _healthBar = GetNode<ProgressBar>("HealthBar");
+        _healthBar.MaxValue = _health.MaxHealth;
+        _healthBar.Value = _health.CurrentHealth;
+
+        _health.HealthChanged += OnHealthChanged;
+
+        var bgStyle = new StyleBoxFlat();
+        bgStyle.BgColor = new Color(0.2f, 0.2f, 0.2f); // gris oscuro
+
+        var fillStyle = new StyleBoxFlat();
+        fillStyle.BgColor = new Color(0.8f, 0.1f, 0.1f); // rojo
+
+        _healthBar.AddThemeStyleboxOverride("background", bgStyle);
+        _healthBar.AddThemeStyleboxOverride("fill", fillStyle);
+
+    }
 
 	public override void _PhysicsProcess(double delta)
 	{
-		// 🔄 NUEVO: si no hay soldado cerca, usamos la base como target
 		Node2D currentTarget = _target ?? _defaultTarget;
 
 		if (currentTarget == null || !IsInstanceValid(currentTarget))
 		{
 			Velocity = Vector2.Zero;
 			MoveAndSlide();
-			return;
+            
+            return;
 		}
 
 		float distToTarget = GlobalPosition.DistanceTo(currentTarget.GlobalPosition);
@@ -51,10 +70,10 @@ public partial class Zombie : CharacterBody2D
 		{
 			Velocity = Vector2.Zero;
 			_attackTimer -= (float)delta;
-
-			if (_attackTimer <= 0f)
+            RotateTowards(_target.GlobalPosition, (float)delta);
+            if (_attackTimer <= 0f)
 			{
-				Attack(currentTarget); // 🔄 le pasamos el target actual
+				Attack(currentTarget);
 				_attackTimer = AttackCooldown;
 			}
 		}
@@ -62,14 +81,18 @@ public partial class Zombie : CharacterBody2D
 		{
 			Vector2 direction = (currentTarget.GlobalPosition - GlobalPosition).Normalized();
 			Velocity = direction * Speed;
-		}
+            RotateTowards(currentTarget.GlobalPosition, (float)delta);
+        }
 
 		MoveAndSlide();
 	}
 
-	// ── Detección ─────────────────────────────────────────────────────
+    private void OnHealthChanged(float current, float max)
+    {
+        _healthBar.Value = current;
+    }
 
-	private void OnBodyEnteredDetectionArea(Node2D body)
+    private void OnBodyEnteredDetectionArea(Node2D body)
 	{
 		if (body.IsInGroup("soldiers") && _target == null)
 			_target = body;
@@ -79,12 +102,8 @@ public partial class Zombie : CharacterBody2D
 	{
 		if (body == _target)
 			_target = null;
-		// Al soltar al soldado, automáticamente vuelve a perseguir la base
 	}
 
-	// ── Combate ───────────────────────────────────────────────────────
-
-	// 🔄 CAMBIO: Attack ahora recibe el target como parámetro
 	private void Attack(Node2D target)
 	{
 		GD.Print($"Zombie atacó a {target.Name}!");
@@ -93,7 +112,13 @@ public partial class Zombie : CharacterBody2D
 			target.GetNode<Health>("Health").TakeDamage(AttackDamage);
 	}
 
-	public void TakeDamage(float amount)
+    private void RotateTowards(Vector2 worldPoint, float delta)
+    {
+        float targetAngle = (worldPoint - GlobalPosition).Angle() + Mathf.Pi / 2f;
+        _visualNode.Rotation = Mathf.LerpAngle(_visualNode.Rotation, targetAngle, delta * 10f);
+    }
+
+    public void TakeDamage(float amount)
 	{
 		_health.TakeDamage(amount);
 	}
