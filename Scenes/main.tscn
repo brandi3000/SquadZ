@@ -1,16 +1,19 @@
 [gd_scene format=3 uid="uid://dho1yi2j72kew"]
 
+[ext_resource type="Script" uid="uid://dapwlxe7x5vv3" path="res://Scripts/Main.cs" id="1_6bp64"]
 [ext_resource type="Script" uid="uid://hwtko6kkwqeq" path="res://Scripts/SelectionManager.cs" id="1_jjgbg"]
 [ext_resource type="Script" uid="uid://ds2f3pwflm2t" path="res://Scripts/SpawnManager.cs" id="1_jjvhh"]
 [ext_resource type="PackedScene" uid="uid://bxrj1o0inpm46" path="res://Scenes/Soldier.tscn" id="2_bo1nx"]
 [ext_resource type="PackedScene" uid="uid://4uyghg1kqkd3" path="res://Scenes/Zombie.tscn" id="3_jjvhh"]
 [ext_resource type="Script" uid="uid://cfhtivp3iantm" path="res://Scripts/Base.cs" id="5_kry3j"]
+[ext_resource type="Script" uid="uid://blalav6q1wujj" path="res://Scripts/Health.cs" id="7_344ge"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_kry3j"]
 size = Vector2(148, 661.5)
 
 [node name="Main" type="Node2D" unique_id=312764592]
 position = Vector2(-4, -1)
+script = ExtResource("1_6bp64")
 
 [node name="Ground" type="ColorRect" parent="." unique_id=616997217]
 offset_left = 8.0
@@ -43,6 +46,12 @@ EnemiesContainerPath = NodePath("../Enemies")
 
 [node name="UI" type="CanvasLayer" parent="." unique_id=1259669432]
 
+[node name="BaseHealthBar" type="ProgressBar" parent="UI" unique_id=1361002207]
+offset_left = 1097.0
+offset_top = 283.0
+offset_right = 1122.0
+offset_bottom = 408.0
+
 [node name="SpawnNorth" type="Marker2D" parent="." unique_id=1514639352]
 position = Vector2(650, 70)
 gizmo_extents = 307.2
@@ -73,3 +82,7 @@ offset_top = -326.0
 offset_right = 51.0
 offset_bottom = 339.0
 color = Color(0.38445798, 0.14056447, 0.19657516, 1)
+
+[node name="Health" type="Node" parent="Base" unique_id=1765908405]
+script = ExtResource("7_344ge")
+MaxHealth = 500.0

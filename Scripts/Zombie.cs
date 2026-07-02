@@ -16,6 +16,8 @@ public partial class Zombie : CharacterBody2D
 	private Node2D _visualNode;
 	private ProgressBar _healthBar;
 
+	private Node2D _base;
+
 	[Signal] public delegate void DiedEventHandler();
 
 	public override void _Ready()
@@ -34,6 +36,8 @@ public partial class Zombie : CharacterBody2D
 		var baseNodes = GetTree().GetNodesInGroup("base");
 		if (baseNodes.Count > 0)
 			_defaultTarget = baseNodes[0] as Node2D;
+
+		_base = GetNode<Node2D>("/root/Main/Base");
 
         _healthBar = GetNode<ProgressBar>("HealthBar");
         _healthBar.MaxValue = _health.MaxHealth;

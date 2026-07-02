@@ -167,17 +167,20 @@ public partial class Soldier : CharacterBody2D
 	}
 
 	private void OnBodyEntered(Node2D body)
-	{
-		if (body.HasNode("Health") && body is not Soldier)
-		{
-			_visibleEnemies.Add(body);
-		}
-	}
+{
+    if (body is Zombie)
+    {
+        _visibleEnemies.Add(body);
+    }
+}
 
-	private void OnBodyExited(Node2D body)
-	{
-		_visibleEnemies.Remove(body);
-	}
+private void OnBodyExited(Node2D body)
+{
+    if (body is Zombie)
+    {
+        _visibleEnemies.Remove(body);
+    }
+}
 
 	private void OnDied()
 	{
