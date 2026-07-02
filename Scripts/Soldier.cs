@@ -154,7 +154,6 @@ public partial class Soldier : CharacterBody2D
     {
         float targetAngle = (worldPoint - GlobalPosition).Angle() + Mathf.Pi / 2f;
         _visualNode.Rotation = Mathf.LerpAngle(_visualNode.Rotation, targetAngle, delta * 10f);
-        GD.Print(_visualNode.Rotation);
     }
 
     private Node2D FindClosestEnemy()

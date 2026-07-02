@@ -2,8 +2,8 @@ using Godot;
 
 public partial class Zombie : CharacterBody2D
 {
-	[Export] public float Speed = 60f;
-	[Export] public float AttackRange = 20f;
+	[Export] public float Speed = 30f;
+	[Export] public float AttackRange = 40f;
 	[Export] public float AttackDamage = 10f;
 	[Export] public float AttackCooldown = 1.5f;
 
@@ -58,37 +58,46 @@ public partial class Zombie : CharacterBody2D
 
 	public override void _PhysicsProcess(double delta)
 	{
-		Node2D currentTarget = _target ?? _defaultTarget;
+		if (_target == null || !IsInstanceValid(_target))
+		{
+			_target = FindTarget(); // 👈 antes era FindClosestSoldier(), ahora incluye la base como fallback
+		}
 
-		if (currentTarget == null || !IsInstanceValid(currentTarget))
+		if (_target == null)
 		{
 			Velocity = Vector2.Zero;
 			MoveAndSlide();
-            
-            return;
+			return;
 		}
 
-		float distToTarget = GlobalPosition.DistanceTo(currentTarget.GlobalPosition);
+		float distance = GlobalPosition.DistanceTo(_target.GlobalPosition);
 
-		if (distToTarget <= AttackRange)
+		if (distance <= AttackRange)
 		{
 			Velocity = Vector2.Zero;
-			_attackTimer -= (float)delta;
-            RotateTowards(_target.GlobalPosition, (float)delta);
-            if (_attackTimer <= 0f)
-			{
-				Attack(currentTarget);
-				_attackTimer = AttackCooldown;
-			}
+			MoveAndSlide();
+			RotateTowards(_target.GlobalPosition, (float)delta);
+			TryAttack((float)delta); // ya sea que ataque al soldado o a la base, mismo método
+			return;
 		}
 		else
 		{
-			Vector2 direction = (currentTarget.GlobalPosition - GlobalPosition).Normalized();
+			Vector2 direction = (_target.GlobalPosition - GlobalPosition).Normalized();
 			Velocity = direction * Speed;
-            RotateTowards(currentTarget.GlobalPosition, (float)delta);
-        }
+			RotateTowards(_target.GlobalPosition, (float)delta);
+		}
 
 		MoveAndSlide();
+	}
+
+	private void TryAttack(float delta)
+	{
+		_attackTimer -= delta;
+		if (_attackTimer <= 0f)
+		{
+			_attackTimer = AttackCooldown;
+			Attack(_target); // reutiliza el método que ya tenía
+		}
 	}
 
     private void OnHealthChanged(float current, float max)
@@ -101,21 +110,29 @@ public partial class Zombie : CharacterBody2D
 		if (body.IsInGroup("soldiers") && _target == null)
 			_target = body;
 	}
-
 	private void OnBodyExitedDetectionArea(Node2D body)
 	{
 		if (body == _target)
 			_target = null;
 	}
-
-	private void Attack(Node2D target)
+	private Node2D FindTarget()
 	{
-		GD.Print($"Zombie atacó a {target.Name}!");
-
-		if (target.HasNode("Health"))
-			target.GetNode<Health>("Health").TakeDamage(AttackDamage);
+		// _target ya se asigna solo desde OnBodyEnteredDetectionArea cuando detecta un soldado.
+		// Acá solo cubrimos el caso de que no haya ninguno: ataca la base.
+		return _base;
 	}
 
+	
+
+	private void Attack(Node2D target)
+{
+    GD.Print($"Zombie atacó a {target.Name}!");
+
+    if (target.HasNode("Health"))
+        target.GetNode<Health>("Health").TakeDamage(AttackDamage);
+    else
+        GD.Print($"⚠️ {target.Name} no tiene nodo Health!"); // 👈 agregá esto
+}
     private void RotateTowards(Vector2 worldPoint, float delta)
     {
         float targetAngle = (worldPoint - GlobalPosition).Angle() + Mathf.Pi / 2f;

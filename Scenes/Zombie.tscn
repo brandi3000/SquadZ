@@ -8,10 +8,12 @@
 radius = 20.0
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_mntmy"]
-radius = 200.0
+radius = 500.0
 
 [node name="Zombie" type="CharacterBody2D" unique_id=1601369578]
 script = ExtResource("1_mauhj")
+AttackRange = 100.0
+AttackDamage = 50.0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1934849071]
 shape = SubResource("CircleShape2D_yf4vm")
@@ -23,6 +25,7 @@ shape = SubResource("CircleShape2D_mntmy")
 
 [node name="Health" type="Node" parent="." unique_id=35853765]
 script = ExtResource("2_h15oy")
+MaxHealth = 1000.0
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1582101565]
 position = Vector2(1.9073486e-06, -5.4836273e-06)
