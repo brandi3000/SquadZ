@@ -1,0 +1,27 @@
+[gd_scene format=3 uid="uid://gw3mq5u43jpr"]
+
+[ext_resource type="Script" uid="uid://blalav6q1wujj" path="res://Scripts/Health.cs" id="1_8r34y"]
+[ext_resource type="Script" uid="uid://dvr1es02lhm7t" path="res://Scripts/Structure.cs" id="1_esmgw"]
+[ext_resource type="Script" uid="uid://cbbdu8kv0ku4y" path="res://Scripts/Buildable.cs" id="2_esmgw"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_j6kcf"]
+size = Vector2(40, 40)
+
+[node name="Wall" type="StaticBody2D" unique_id=618549781]
+script = ExtResource("1_esmgw")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=343632639]
+shape = SubResource("RectangleShape2D_j6kcf")
+
+[node name="Health" type="Node" parent="." unique_id=1618311205]
+script = ExtResource("1_8r34y")
+MaxHealth = 150.0
+
+[node name="Buildable" type="Node" parent="." unique_id=601503173]
+script = ExtResource("2_esmgw")
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=921701143]
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0

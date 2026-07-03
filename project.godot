@@ -15,6 +15,10 @@ run/main_scene="uid://dho1yi2j72kew"
 config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 config/icon="res://Assets/icon.svg"
 
+[autoload]
+
+GameManager="*uid://d365opj60hqmx"
+
 [dotnet]
 
 project/assembly_name="SquadZ!"

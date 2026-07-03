@@ -1,66 +1,74 @@
 using Godot;
-using System;
-
-using Godot;
 
 public partial class SpawnManager : Node
 {
-	// La escena del zombie para instanciarla 
 	[Export] private PackedScene ZombieScene;
-
-	// Puntos de spawn en el borde del mapa 
 	[Export] private NodePath[] SpawnPointPaths;
-
-	// Contenedor donde van los zombies instanciados
 	[Export] private NodePath EnemiesContainerPath;
 
-	// Configuración de oleadas
-	[Export] public float TimeBetweenWaves = 30f;  // segundos entre oleadas
+	[Export] public float TimeBetweenRounds = 15f; // entre ronda 1 y ronda 2 del mismo día
 	[Export] public int ZombiesPerWave = 5;
-	[Export] public float TimeBetweenSpawns = 0.5f; // tiempo entre cada zombie de la oleada
+	[Export] public float TimeBetweenSpawns = 0.5f;
 
 	private Node2D _enemiesContainer;
 	private Node2D[] _spawnPoints;
-	private float _waveTimer;
-	private int _currentWave = 0;
+
+	private int _currentDay = 0;
+	private int _currentRound = 0; // 1 o 2, dentro del día actual
+
+	private int _zombiesAlive = 0;
+	private bool _roundInProgress = false;
+	private float _roundTransitionTimer = 0f;
+	private bool _waitingForNextRound = false;
 
 	public override void _Ready()
 	{
 		_enemiesContainer = GetNode<Node2D>(EnemiesContainerPath);
 
-		// Convertimos los paths a referencias de nodos
 		_spawnPoints = new Node2D[SpawnPointPaths.Length];
 		for (int i = 0; i < SpawnPointPaths.Length; i++)
 			_spawnPoints[i] = GetNode<Node2D>(SpawnPointPaths[i]);
 
-		_waveTimer = 3f; // Primera oleada a los 3 segundos de empezar
+		StartNewDay(); // arranca el día 1 apenas empieza el juego
 	}
 
 	public override void _Process(double delta)
 	{
-		_waveTimer -= (float)delta;
+		if (!_waitingForNextRound) return;
 
-		if (_waveTimer <= 0f)
+		_roundTransitionTimer -= (float)delta;
+
+		if (_roundTransitionTimer <= 0f)
 		{
-			StartNextWave();
-			_waveTimer = TimeBetweenWaves;
+			_waitingForNextRound = false;
+			StartRound(2); // la ronda 2 siempre arranca sola, por tiempo
 		}
 	}
 
-	private async void StartNextWave()
+	// Se llama al arrancar el juego, y también cuando el jugador aprieta "Pasar al día siguiente"
+	public void StartNewDay()
 	{
-		_currentWave++;
-		GD.Print($"=== OLEADA {_currentWave} ===");
+		_currentDay++;
+		GameManager.Instance.NextWave(); // reusamos el label existente, ahora representa "día"
+		GD.Print($"=== DÍA {_currentDay} ===");
 
-		// Cantidad de zombies aumenta con cada oleada
-		int zombiesThisWave = ZombiesPerWave + (_currentWave - 1) * 2;
+		GameManager.Instance.SetState(GameState.Combat);
+		StartRound(1);
+	}
 
-		for (int i = 0; i < zombiesThisWave; i++)
+	private async void StartRound(int roundNumber)
+	{
+		_currentRound = roundNumber;
+		_roundInProgress = true;
+		GD.Print($"--- Día {_currentDay}, Ronda {_currentRound} ---");
+
+		// La dificultad depende del DÍA, no de la ronda
+		int zombiesThisRound = ZombiesPerWave + (_currentDay - 1) * 2;
+		_zombiesAlive = zombiesThisRound;
+
+		for (int i = 0; i < zombiesThisRound; i++)
 		{
 			SpawnZombie();
-
-			// Esperamos un poco entre cada zombie para que no aparezcan todos juntos
-			// SceneTreeTimer es la forma de Godot de hacer un "esperar X segundos"
 			await ToSignal(GetTree().CreateTimer(TimeBetweenSpawns), "timeout");
 		}
 	}
@@ -69,13 +77,39 @@ public partial class SpawnManager : Node
 	{
 		if (ZombieScene == null || _spawnPoints.Length == 0) return;
 
-		//spawn al azar
 		int randomIndex = GD.RandRange(0, _spawnPoints.Length - 1);
 		Vector2 spawnPosition = _spawnPoints[randomIndex].GlobalPosition;
 
-		// Instanciamos la escena del zimbie
 		Zombie zombie = ZombieScene.Instantiate<Zombie>();
 		_enemiesContainer.AddChild(zombie);
 		zombie.GlobalPosition = spawnPosition;
+
+		zombie.Died += OnZombieDied;
+	}
+
+	private void OnZombieDied()
+	{
+		_zombiesAlive--;
+
+		if (_zombiesAlive <= 0)
+		{
+			_roundInProgress = false;
+			OnRoundCompleted();
+		}
+	}
+
+	private void OnRoundCompleted()
+	{
+		if (_currentRound == 1)
+		{
+			GD.Print("Ronda 1 completada, preparando ronda 2...");
+			_roundTransitionTimer = TimeBetweenRounds;
+			_waitingForNextRound = true; // la ronda 2 arranca sola por tiempo, en _Process
+		}
+		else
+		{
+			GD.Print("Día completado. Esperando que el jugador confirme el día siguiente.");
+			GameManager.Instance.SetState(GameState.Intermission); // 👈 acá aparece el botón
+		}
 	}
 }

@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://c880qersnltyd" path="res://Scripts/Zombie.cs" id="1_mauhj"]
 [ext_resource type="Script" uid="uid://blalav6q1wujj" path="res://Scripts/Health.cs" id="2_h15oy"]
 [ext_resource type="Texture2D" uid="uid://6gsi2vbn85vq" path="res://Assets/Sprite-0010.png" id="3_yf4vm"]
+[ext_resource type="Script" uid="uid://ddfiy3lhw6avl" path="res://scripts/Move.cs" id="4_mntmy"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_yf4vm"]
 radius = 20.0
@@ -12,8 +13,6 @@ radius = 500.0
 
 [node name="Zombie" type="CharacterBody2D" unique_id=1601369578]
 script = ExtResource("1_mauhj")
-AttackRange = 100.0
-AttackDamage = 50.0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1934849071]
 shape = SubResource("CircleShape2D_yf4vm")
@@ -25,7 +24,7 @@ shape = SubResource("CircleShape2D_mntmy")
 
 [node name="Health" type="Node" parent="." unique_id=35853765]
 script = ExtResource("2_h15oy")
-MaxHealth = 1000.0
+MaxHealth = 150.0
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1582101565]
 position = Vector2(1.9073486e-06, -5.4836273e-06)
@@ -41,3 +40,6 @@ rotation = -1.5707964
 value = 80.0
 fill_mode = 2
 show_percentage = false
+
+[node name="Move" type="Node" parent="." unique_id=284382910]
+script = ExtResource("4_mntmy")

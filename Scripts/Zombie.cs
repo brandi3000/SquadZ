@@ -1,4 +1,6 @@
 using Godot;
+using System.Collections.Generic;
+using System.Linq;
 
 public partial class Zombie : CharacterBody2D
 {
@@ -18,6 +20,10 @@ public partial class Zombie : CharacterBody2D
 
 	private Node2D _base;
 
+	private Move _mover;
+
+	private List<Node2D> _visibleSoldiers = new List<Node2D>();
+
 	[Signal] public delegate void DiedEventHandler();
 
 	public override void _Ready()
@@ -36,6 +42,8 @@ public partial class Zombie : CharacterBody2D
 		var baseNodes = GetTree().GetNodesInGroup("base");
 		if (baseNodes.Count > 0)
 			_defaultTarget = baseNodes[0] as Node2D;
+		
+		_mover = GetNode<Move>("Move");
 
 		_base = GetNode<Node2D>("/root/Main/Base");
 
@@ -60,7 +68,8 @@ public partial class Zombie : CharacterBody2D
 	{
 		if (_target == null || !IsInstanceValid(_target))
 		{
-			_target = FindTarget(); // 👈 antes era FindClosestSoldier(), ahora incluye la base como fallback
+			_target = FindClosestSoldier();
+			if (_target == null) _target = _base;
 		}
 
 		if (_target == null)
@@ -70,25 +79,27 @@ public partial class Zombie : CharacterBody2D
 			return;
 		}
 
-		float distance = GlobalPosition.DistanceTo(_target.GlobalPosition);
+		float distance = GetEdgeDistance(_target);
+		bool inAttackRange = distance <= AttackRange;
 
-		if (distance <= AttackRange)
+		RotateTowards(_target.GlobalPosition, (float)delta);
+
+		if (inAttackRange)
 		{
-			Velocity = Vector2.Zero;
-			MoveAndSlide();
-			RotateTowards(_target.GlobalPosition, (float)delta);
-			TryAttack((float)delta); // ya sea que ataque al soldado o a la base, mismo método
-			return;
+			TryAttack((float)delta);
+		}
+
+		if (distance > 0)
+		{
+			_mover.MoveTowards(_target.GlobalPosition); // 👈 usa el componente
 		}
 		else
 		{
-			Vector2 direction = (_target.GlobalPosition - GlobalPosition).Normalized();
-			Velocity = direction * Speed;
-			RotateTowards(_target.GlobalPosition, (float)delta);
+			Velocity = Vector2.Zero;
+			MoveAndSlide();
 		}
-
-		MoveAndSlide();
 	}
+
 
 	private void TryAttack(float delta)
 	{
@@ -104,29 +115,74 @@ public partial class Zombie : CharacterBody2D
     {
         _healthBar.Value = current;
     }
+	private Node2D FindClosestSoldier()
+    {
+        // Limpiamos por las dudas algún soldado que ya no exista más (murió, etc.)
+        _visibleSoldiers.RemoveAll(s => !IsInstanceValid(s) || !s.IsInGroup("soldiers"));
 
+        if (_visibleSoldiers.Count == 0) return null;
+
+        return _visibleSoldiers
+            .OrderBy(s => GlobalPosition.DistanceTo(s.GlobalPosition))
+            .FirstOrDefault();
+    }
+	private float GetEdgeDistance(Node2D target)
+    {
+        float centerDistance = GlobalPosition.DistanceTo(target.GlobalPosition);
+        float myRadius = GetTargetRadius(this);
+        float targetRadius = GetTargetRadius(target);
+        
+        return centerDistance - myRadius - targetRadius;
+    }
+    private float GetTargetRadius(Node2D target)
+    {
+        if (target is CollisionObject2D collisionObject)
+        {
+            var shapeOwners = collisionObject.GetShapeOwners();
+            foreach (uint ownerId in shapeOwners)
+            {
+                int shapeCount = collisionObject.ShapeOwnerGetShapeCount(ownerId);
+                for (int i = 0; i < shapeCount; i++)
+                {
+                    var shape = collisionObject.ShapeOwnerGetShape(ownerId, i);
+
+                    if (shape is CircleShape2D circle)
+                        return circle.Radius;
+
+                    if (shape is RectangleShape2D rect)
+                        return Mathf.Min(rect.Size.X, rect.Size.Y) / 2f;
+                }
+            }
+        }
+        return 0f;
+    }
+	private Vector2 GetClosestEdgePoint(Node2D target)
+	{
+		float targetRadius = GetTargetRadius(target);
+		
+		Vector2 directionToTarget = (target.GlobalPosition - GlobalPosition).Normalized();
+		
+		// Retrocedemos desde el centro del target, en dirección hacia nosotros,
+		// la distancia de su radio -> nos da el punto del borde más cercano
+		return target.GlobalPosition - directionToTarget * targetRadius;
+	}
     private void OnBodyEnteredDetectionArea(Node2D body)
 	{
-		if (body.IsInGroup("soldiers") && _target == null)
+		if (body == this) return;
+		if (body.IsInGroup("soldiers"))
+		{
+			_visibleSoldiers.Add(body);
 			_target = body;
+		}
 	}
 	private void OnBodyExitedDetectionArea(Node2D body)
 	{
+		_visibleSoldiers.Remove(body);
 		if (body == _target)
 			_target = null;
 	}
-	private Node2D FindTarget()
-	{
-		// _target ya se asigna solo desde OnBodyEnteredDetectionArea cuando detecta un soldado.
-		// Acá solo cubrimos el caso de que no haya ninguno: ataca la base.
-		return _base;
-	}
-
-	
-
 	private void Attack(Node2D target)
 {
-    GD.Print($"Zombie atacó a {target.Name}!");
 
     if (target.HasNode("Health"))
         target.GetNode<Health>("Health").TakeDamage(AttackDamage);
@@ -138,14 +194,14 @@ public partial class Zombie : CharacterBody2D
         float targetAngle = (worldPoint - GlobalPosition).Angle() + Mathf.Pi / 2f;
         _visualNode.Rotation = Mathf.LerpAngle(_visualNode.Rotation, targetAngle, delta * 10f);
     }
-
     public void TakeDamage(float amount)
 	{
 		_health.TakeDamage(amount);
 	}
-
 	private void OnHealthDepleted()
 	{
+		GD.Print("Zombie murió, agregando chatarra");
+		GameManager.Instance.AddScrap(10);
 		EmitSignal(SignalName.Died);
 		QueueFree();
 	}

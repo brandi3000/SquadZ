@@ -60,15 +60,40 @@ public partial class SelectionManager : Node
 
 	private void HandleRightClick(Vector2 mouseWorldPos)
 	{
-		// Le decimos a cada soldado seleccionado que se mueva
-		// Si hay varios, los repartimos en formación simple
+		Structure clickedStructure = FindStructureAtPosition(mouseWorldPos);
+
 		int count = _selectedSoldiers.Count;
 		for (int i = 0; i < count; i++)
 		{
-			// Offset para que no se apilen en el mismo punto
-			Vector2 offset = new Vector2((i % 3 - 1) * 30f, (i / 3) * 30f);
-			_selectedSoldiers[i].MoveTo(mouseWorldPos + offset);
+			if (clickedStructure != null)
+			{
+				_selectedSoldiers[i].AssignToBuild(clickedStructure);
+			}
+			else
+			{
+				Vector2 offset = new Vector2((i % 3 - 1) * 30f, (i / 3) * 30f);
+				_selectedSoldiers[i].MoveTo(mouseWorldPos + offset);
+			}
 		}
+	}
+
+	private Structure FindStructureAtPosition(Vector2 worldPos)
+	{
+		var structures = GetTree().GetNodesInGroup("structures");
+
+		foreach (Node node in structures)
+		{
+			if (node is Structure structure)
+			{
+				float distance = structure.GlobalPosition.DistanceTo(worldPos);
+				if (distance < 20f)
+				{
+					return structure;
+				}
+			}
+		}
+
+		return null;
 	}
 
 	private void DeselectAll()

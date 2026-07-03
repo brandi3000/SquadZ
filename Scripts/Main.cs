@@ -2,34 +2,42 @@ using Godot;
 
 public partial class Main : Node2D
 {
+    [Export] private PackedScene _soldierScene;
+    [Export] public int SoldierCost = 20;
+
+    private Node2D _unitsContainer;
+    private Node2D _base;
     private Health _baseHealth;
-    private ProgressBar _baseHealthBar;
+    private Node2D _spawnPoint;
 
     public override void _Ready()
     {
+        _unitsContainer = GetNode<Node2D>("Units");
+        _base = GetNode<Node2D>("Base");
         _baseHealth = GetNode<Health>("Base/Health");
-        _baseHealthBar = GetNode<ProgressBar>("UI/BaseHealthBar");
+        _spawnPoint = GetNode<Node2D>("Base/SoldierSpawnPoint"); // 👈 nuevo
 
-        // Colores bien visibles, igual que hicimos con las unidades
-        var bgStyle = new StyleBoxFlat();
-        bgStyle.BgColor = new Color(0.2f, 0.2f, 0.2f);
-
-        var fillStyle = new StyleBoxFlat();
-        fillStyle.BgColor = new Color(0.1f, 0.6f, 0.9f); // celeste, para diferenciarla de la vida roja de las unidades
-
-        _baseHealthBar.AddThemeStyleboxOverride("background", bgStyle);
-        _baseHealthBar.AddThemeStyleboxOverride("fill", fillStyle);
-
-        _baseHealthBar.MaxValue = _baseHealth.MaxHealth;
-        _baseHealthBar.Value = _baseHealth.MaxHealth;
-
-        _baseHealth.HealthChanged += OnBaseHealthChanged;
         _baseHealth.Died += OnBaseDied;
     }
 
-    private void OnBaseHealthChanged(float current, float max)
+    public void TrySpawnSoldier()
     {
-        _baseHealthBar.Value = current;
+        if (!GameManager.Instance.SpendScrap(SoldierCost))
+        {
+            GD.Print("No hay suficiente chatarra para spawnear un soldado");
+            return;
+        }
+
+        Soldier soldier = _soldierScene.Instantiate<Soldier>();
+        _unitsContainer.AddChild(soldier);
+
+        // Pequeño offset para que no se apilen exactamente en el mismo pixel
+        // si spawneas varios seguidos, pero mucho más chico que antes
+        Vector2 spawnOffset = new Vector2(
+            (float)GD.RandRange(-10, 10),
+            (float)GD.RandRange(-10, 10)
+        );
+        soldier.GlobalPosition = _spawnPoint.GlobalPosition + spawnOffset; // 👈 antes usaba _base.GlobalPosition
     }
 
     private void OnBaseDied()

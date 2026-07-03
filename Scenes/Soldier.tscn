@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://dud2iutf81j5k" path="res://Scripts/Soldier.cs" id="1_y35nx"]
 [ext_resource type="Script" uid="uid://blalav6q1wujj" path="res://Scripts/Health.cs" id="2_8pnfg"]
 [ext_resource type="Texture2D" uid="uid://b1ovgam724dxf" path="res://Assets/Sprite-0002.png" id="3_j6lg2"]
+[ext_resource type="Script" uid="uid://ddfiy3lhw6avl" path="res://Scripts/Move.cs" id="4_crngg"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_l0vb8"]
 
@@ -51,3 +52,6 @@ rotation = 1.5707964
 value = 80.0
 fill_mode = 3
 show_percentage = false
+
+[node name="Move" type="Node" parent="." unique_id=1246834619]
+script = ExtResource("4_crngg")

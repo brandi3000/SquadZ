@@ -26,8 +26,16 @@ public partial class Soldier : CharacterBody2D
 	private Line2D _moveLine;
 	private ProgressBar _healthBar;
 
+	private Move _move;
+
+	private Structure _buildTarget;
+	private bool _isWorking = false;
+	private const float BuildRange = 20f;
+
 	public override void _Ready()
 	{
+		AddToGroup("soldiers");
+
 		_selectionRing = GetNode<Node2D>("SelectionRing");
 		_selectionRing.Visible = false;
 		_targetPosition = GlobalPosition;
@@ -40,6 +48,8 @@ public partial class Soldier : CharacterBody2D
 		_detectionArea.BodyExited += OnBodyExited;
 
         _visualNode = GetNode<Node2D>("Sprite2D");
+
+		_move = GetNode<Move>("Move");
 
         _healthBar = GetNode<ProgressBar>("HealthBar");
         _healthBar.MaxValue = _health.MaxHealth;
@@ -62,48 +72,58 @@ public partial class Soldier : CharacterBody2D
 
 	public override void _PhysicsProcess(double delta)
 	{
+		if (_buildTarget != null && IsInstanceValid(_buildTarget))
+		{
+			HandleBuildBehavior((float)delta);
+			return;
+		}
+
 		if (_target == null || !IsInstanceValid(_target))
 		{
 			_target = FindClosestEnemy();
 		}
 
+		bool hasTargetInRange = false;
+
 		if (_target != null)
 		{
 			float distance = GlobalPosition.DistanceTo(_target.GlobalPosition);
+			hasTargetInRange = distance <= AttackRange;
 
-			if (distance <= AttackRange)
+			if (hasTargetInRange)
 			{
-				Velocity = Vector2.Zero;
-				MoveAndSlide();
-                RotateTowards(_target.GlobalPosition, (float)delta);
-                TryAttack((float)delta);
-				return;
+				RotateTowards(_target.GlobalPosition, (float)delta);
+				TryAttack((float)delta);
 			}
 		}
 
-		if (!_isMoving)
+		if (_isMoving)
+		{
+			float distanceToTarget = GlobalPosition.DistanceTo(_targetPosition);
+			if (distanceToTarget <= StopDistance)
+			{
+				Velocity = Vector2.Zero;
+				_isMoving = false;
+				_moveLine.ClearPoints();
+				MoveAndSlide();
+			}
+			else
+			{
+				_move.MoveTowards(_targetPosition); // 👈 usa el componente, ya hace Velocity + MoveAndSlide adentro
+
+				if (!hasTargetInRange)
+				{
+					RotateTowards(_targetPosition, (float)delta);
+				}
+
+				UpdateMoveLine(_targetPosition, new Color(0.6f, 0.9f, 1f));
+			}
+		}
+		else
 		{
 			Velocity = Vector2.Zero;
 			MoveAndSlide();
-			return;
 		}
-
-		float distanceToTarget = GlobalPosition.DistanceTo(_targetPosition);
-		if (distanceToTarget <= StopDistance)
-		{
-			Velocity = Vector2.Zero;
-			_isMoving = false;
-            _moveLine.ClearPoints();
-        }
-		else
-		{
-			Vector2 direction = (_targetPosition - GlobalPosition).Normalized();
-			Velocity = direction * Speed;
-            RotateTowards(_targetPosition, (float)delta);
-            UpdateMoveLine();
-        }
-
-		MoveAndSlide();
 	}
 
     private void DrawShootLine(Vector2 from, Vector2 to)
@@ -119,6 +139,17 @@ public partial class Soldier : CharacterBody2D
         GetTree().CreateTimer(0.3f).Timeout += () => line.QueueFree();
     }
 
+	public void AssignToBuild(Structure structure)
+	{
+		if (_buildTarget != null && IsInstanceValid(_buildTarget))
+		{
+			_buildTarget.Buildable.RemoveWorker();
+		}
+
+		_buildTarget = structure;
+		_isMoving = false;
+	}
+
     private void TryAttack(float delta)
 	{
 		_attackTimer -= delta;
@@ -132,18 +163,17 @@ public partial class Soldier : CharacterBody2D
 				targetHealth.TakeDamage(AttackDamage);
 
                 DrawShootLine(GlobalPosition, _target.GlobalPosition);
-
-                GD.Print($"{Name} ataca a {_target.Name} por {AttackDamage} de daño");
 			}
 		}
 	}
 
-    private void UpdateMoveLine()
-    {
-        _moveLine.ClearPoints();
-        _moveLine.AddPoint(Vector2.Zero);
-        _moveLine.AddPoint(_targetPosition - GlobalPosition);
-    }
+    private void UpdateMoveLine(Vector2 targetPosition, Color color)
+	{
+		_moveLine.ClearPoints();
+		_moveLine.DefaultColor = color;
+		_moveLine.AddPoint(Vector2.Zero);
+		_moveLine.AddPoint(targetPosition - GlobalPosition);
+	}
 
     private void OnHealthChanged(float current, float max)
     {
@@ -173,17 +203,16 @@ public partial class Soldier : CharacterBody2D
     }
 }
 
-private void OnBodyExited(Node2D body)
-{
-    if (body is Zombie)
-    {
-        _visibleEnemies.Remove(body);
-    }
-}
+	private void OnBodyExited(Node2D body)
+	{
+		if (body is Zombie)
+		{
+			_visibleEnemies.Remove(body);
+		}
+	}
 
 	private void OnDied()
 	{
-		GD.Print($"{Name} murió");
 		QueueFree();
 	}
 
@@ -204,6 +233,46 @@ private void OnBodyExited(Node2D body)
 		_isSelected = false;
 		_selectionRing.Visible = false;
 	}
+	private void HandleBuildBehavior(float delta)
+	{
+		if (_buildTarget.Buildable.IsCompleted)
+		{
+			if (_isWorking)
+			{
+				_buildTarget.Buildable.RemoveWorker();
+				_isWorking = false;
+			}
+			_buildTarget = null;
+			Velocity = Vector2.Zero;
+			MoveAndSlide();
+			_moveLine.ClearPoints();
+			return;
+		}
 
+		float distance = GlobalPosition.DistanceTo(_buildTarget.GlobalPosition);
+
+		if (distance <= BuildRange)
+		{
+			if (!_isWorking)
+			{
+				_buildTarget.Buildable.AddWorker();
+				_isWorking = true;
+			}
+			Velocity = Vector2.Zero;
+			MoveAndSlide();
+			_moveLine.ClearPoints();
+		}
+		else
+		{
+			_move.MoveTowards(_buildTarget.GlobalPosition);
+			RotateTowards(_buildTarget.GlobalPosition, delta);
+			UpdateBuildLine();
+		}
+	}
+
+	private void UpdateBuildLine()
+	{
+		UpdateMoveLine(_buildTarget.GlobalPosition, new Color(1f, 0.8f, 0.2f));
+	}
 	public bool IsSelected => _isSelected;
 }
