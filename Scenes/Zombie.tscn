@@ -2,14 +2,16 @@
 
 [ext_resource type="Script" uid="uid://c880qersnltyd" path="res://Scripts/Zombie.cs" id="1_mauhj"]
 [ext_resource type="Script" uid="uid://blalav6q1wujj" path="res://Scripts/Health.cs" id="2_h15oy"]
-[ext_resource type="Texture2D" uid="uid://6gsi2vbn85vq" path="res://Assets/Sprite-0010.png" id="3_yf4vm"]
-[ext_resource type="Script" uid="uid://ddfiy3lhw6avl" path="res://scripts/Move.cs" id="4_mntmy"]
+[ext_resource type="Script" uid="uid://ddfiy3lhw6avl" path="res://Scripts/Move.cs" id="4_mntmy"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_yf4vm"]
 radius = 20.0
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_mntmy"]
 radius = 500.0
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_yf4vm"]
+load_path = "res://.godot/imported/spriteZombie.png-17baba3be355c54b7cdf84077d16021b.ctex"
 
 [node name="Zombie" type="CharacterBody2D" unique_id=1601369578]
 script = ExtResource("1_mauhj")
@@ -27,9 +29,10 @@ script = ExtResource("2_h15oy")
 MaxHealth = 150.0
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1582101565]
+texture_filter = 1
 position = Vector2(1.9073486e-06, -5.4836273e-06)
 scale = Vector2(1.6875, 1.7515191)
-texture = ExtResource("3_yf4vm")
+texture = SubResource("CompressedTexture2D_yf4vm")
 
 [node name="HealthBar" type="ProgressBar" parent="." unique_id=1243675820]
 offset_left = -18.053917

@@ -47,28 +47,28 @@ public partial class Soldier : CharacterBody2D
 		_detectionArea.BodyEntered += OnBodyEntered;
 		_detectionArea.BodyExited += OnBodyExited;
 
-        _visualNode = GetNode<Node2D>("Sprite2D");
+		_visualNode = GetNode<Node2D>("Sprite2D");
 
 		_move = GetNode<Move>("Move");
 
-        _healthBar = GetNode<ProgressBar>("HealthBar");
-        _healthBar.MaxValue = _health.MaxHealth;
-        _healthBar.Value = _health.CurrentHealth;
+		_healthBar = GetNode<ProgressBar>("HealthBar");
+		_healthBar.MaxValue = _health.MaxHealth;
+		_healthBar.Value = _health.CurrentHealth;
 
-        _health.HealthChanged += OnHealthChanged;
+		_health.HealthChanged += OnHealthChanged;
 
-        _moveLine = GetNode<Line2D>("MoveLine");
-        _moveLine.ClearPoints();
+		_moveLine = GetNode<Line2D>("MoveLine");
+		_moveLine.ClearPoints();
 
-        var bgStyle = new StyleBoxFlat();
-        bgStyle.BgColor = new Color(0.2f, 0.2f, 0.2f); // gris oscuro
+		var bgStyle = new StyleBoxFlat();
+		bgStyle.BgColor = new Color(0.2f, 0.2f, 0.2f); // gris oscuro
 
-        var fillStyle = new StyleBoxFlat();
-        fillStyle.BgColor = new Color(0.8f, 0.1f, 0.1f); // rojo
+		var fillStyle = new StyleBoxFlat();
+		fillStyle.BgColor = new Color(0.8f, 0.1f, 0.1f); // rojo
 
-        _healthBar.AddThemeStyleboxOverride("background", bgStyle);
-        _healthBar.AddThemeStyleboxOverride("fill", fillStyle);
-    }
+		_healthBar.AddThemeStyleboxOverride("background", bgStyle);
+		_healthBar.AddThemeStyleboxOverride("fill", fillStyle);
+	}
 
 	public override void _PhysicsProcess(double delta)
 	{
@@ -126,18 +126,18 @@ public partial class Soldier : CharacterBody2D
 		}
 	}
 
-    private void DrawShootLine(Vector2 from, Vector2 to)
-    {
-        Line2D line = new Line2D();
-        line.AddPoint(from);
-        line.AddPoint(to);
-        line.Width = 2f;
-        line.DefaultColor = new Color(1f, 0.9f, 0.2f);
+	private void DrawShootLine(Vector2 from, Vector2 to)
+	{
+		Line2D line = new Line2D();
+		line.AddPoint(from);
+		line.AddPoint(to);
+		line.Width = 2f;
+		line.DefaultColor = new Color(1f, 0.9f, 0.2f);
 
-        GetTree().CurrentScene.AddChild(line);
+		GetTree().CurrentScene.AddChild(line);
 
-        GetTree().CreateTimer(0.3f).Timeout += () => line.QueueFree();
-    }
+		GetTree().CreateTimer(0.3f).Timeout += () => line.QueueFree();
+	}
 
 	public void AssignToBuild(Structure structure)
 	{
@@ -150,7 +150,7 @@ public partial class Soldier : CharacterBody2D
 		_isMoving = false;
 	}
 
-    private void TryAttack(float delta)
+	private void TryAttack(float delta)
 	{
 		_attackTimer -= delta;
 		if (_attackTimer <= 0f)
@@ -162,12 +162,12 @@ public partial class Soldier : CharacterBody2D
 				Health targetHealth = _target.GetNode<Health>("Health");
 				targetHealth.TakeDamage(AttackDamage);
 
-                DrawShootLine(GlobalPosition, _target.GlobalPosition);
+				DrawShootLine(GlobalPosition, _target.GlobalPosition);
 			}
 		}
 	}
 
-    private void UpdateMoveLine(Vector2 targetPosition, Color color)
+	private void UpdateMoveLine(Vector2 targetPosition, Color color)
 	{
 		_moveLine.ClearPoints();
 		_moveLine.DefaultColor = color;
@@ -175,18 +175,18 @@ public partial class Soldier : CharacterBody2D
 		_moveLine.AddPoint(targetPosition - GlobalPosition);
 	}
 
-    private void OnHealthChanged(float current, float max)
-    {
-        _healthBar.Value = current;
-    }
+	private void OnHealthChanged(float current, float max)
+	{
+		_healthBar.Value = current;
+	}
 
-    private void RotateTowards(Vector2 worldPoint, float delta)
-    {
-        float targetAngle = (worldPoint - GlobalPosition).Angle() + Mathf.Pi / 2f;
-        _visualNode.Rotation = Mathf.LerpAngle(_visualNode.Rotation, targetAngle, delta * 10f);
-    }
+	private void RotateTowards(Vector2 worldPoint, float delta)
+	{
+		float targetAngle = (worldPoint - GlobalPosition).Angle() + Mathf.Pi / 2f;
+		_visualNode.Rotation = Mathf.LerpAngle(_visualNode.Rotation, targetAngle, delta * 10f);
+	}
 
-    private Node2D FindClosestEnemy()
+	private Node2D FindClosestEnemy()
 	{
 		if (_visibleEnemies.Count == 0) return null;
 		return _visibleEnemies
@@ -197,10 +197,10 @@ public partial class Soldier : CharacterBody2D
 
 	private void OnBodyEntered(Node2D body)
 {
-    if (body is Zombie)
-    {
-        _visibleEnemies.Add(body);
-    }
+	if (body is Zombie)
+	{
+		_visibleEnemies.Add(body);
+	}
 }
 
 	private void OnBodyExited(Node2D body)

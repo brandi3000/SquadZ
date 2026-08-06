@@ -2,13 +2,15 @@
 
 [ext_resource type="Script" uid="uid://dud2iutf81j5k" path="res://Scripts/Soldier.cs" id="1_y35nx"]
 [ext_resource type="Script" uid="uid://blalav6q1wujj" path="res://Scripts/Health.cs" id="2_8pnfg"]
-[ext_resource type="Texture2D" uid="uid://b1ovgam724dxf" path="res://Assets/Sprite-0002.png" id="3_j6lg2"]
 [ext_resource type="Script" uid="uid://ddfiy3lhw6avl" path="res://Scripts/Move.cs" id="4_crngg"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_l0vb8"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_8pnfg"]
 radius = 100.0
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_j6lg2"]
+load_path = "res://.godot/imported/spriteSoldado.png-7a35c631ed337ef5102b3a17ab4af539.ctex"
 
 [node name="Soldier" type="CharacterBody2D" unique_id=1858594079]
 script = ExtResource("1_y35nx")
@@ -24,6 +26,7 @@ position = Vector2(1, 0)
 shape = SubResource("CircleShape2D_8pnfg")
 
 [node name="SelectionRing" type="Node2D" parent="." unique_id=1489563676]
+scale = Vector2(1.5, 1.5)
 
 [node name="SelectionRect" type="ColorRect" parent="SelectionRing" unique_id=720992077]
 offset_left = -15.123455
@@ -35,10 +38,11 @@ offset_bottom = 15.0
 script = ExtResource("2_8pnfg")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=761583011]
-position = Vector2(-5.00679e-06, 5.2452087e-06)
+texture_filter = 1
+position = Vector2(-2.3841858e-07, 3)
 rotation = -6.2831855
-scale = Vector2(0.8213604, 0.82136047)
-texture = ExtResource("3_j6lg2")
+scale = Vector2(1.433, 1.5)
+texture = SubResource("CompressedTexture2D_j6lg2")
 offset = Vector2(0, 9.536743e-07)
 
 [node name="MoveLine" type="Line2D" parent="." unique_id=1731275782]
