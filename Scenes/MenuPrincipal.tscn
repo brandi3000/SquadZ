@@ -1,0 +1,71 @@
+[gd_scene format=3 uid="uid://blefevjs0laqo"]
+
+[ext_resource type="Theme" uid="uid://guyjqye4jni7" path="res://Themes/BotonMenuPrincipal.tres" id="1_3k1ur"]
+[ext_resource type="Script" uid="uid://t0xrl0la7cut" path="res://Scripts/Jugar.cs" id="2_bt1tr"]
+[ext_resource type="Script" uid="uid://ls2lr15xke4l" path="res://Scripts/Salir.cs" id="2_wvohi"]
+[ext_resource type="FontFile" uid="uid://bqqmpf13m7iwu" path="res://Themes/determination.ttf" id="4_l10t8"]
+
+[sub_resource type="Theme" id="Theme_u0ya7"]
+default_font = ExtResource("4_l10t8")
+default_font_size = 120
+
+[node name="MenuPrincipal" type="Control" unique_id=1683241190]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 2.0
+offset_top = -1.0
+offset_right = 2.0
+offset_bottom = -1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1919156207]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -144.0
+offset_top = -334.0
+offset_right = 144.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/separation = 20
+
+[node name="Jugar" type="Button" parent="VBoxContainer" unique_id=1443166333]
+layout_mode = 2
+theme = ExtResource("1_3k1ur")
+text = "Jugar"
+script = ExtResource("2_bt1tr")
+
+[node name="Cargar" type="Button" parent="VBoxContainer" unique_id=10920554]
+layout_mode = 2
+theme = ExtResource("1_3k1ur")
+text = "Cargar"
+
+[node name="Salir" type="Button" parent="VBoxContainer" unique_id=1177050229]
+layout_mode = 2
+theme = ExtResource("1_3k1ur")
+text = "Salir"
+script = ExtResource("2_wvohi")
+
+[node name="VBoxContainer2" type="VBoxContainer" parent="." unique_id=129631100]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -37.0
+offset_right = 37.0
+offset_bottom = 311.0
+grow_horizontal = 2
+alignment = 1
+
+[node name="Label" type="Label" parent="VBoxContainer2" unique_id=343914120]
+layout_mode = 2
+theme = SubResource("Theme_u0ya7")
+text = "SQUAD Z!"
+horizontal_alignment = 1
+vertical_alignment = 1
