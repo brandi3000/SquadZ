@@ -3,6 +3,6 @@
 [ext_resource type="FontFile" uid="uid://bqqmpf13m7iwu" path="res://Themes/determination.ttf" id="1_xwa22"]
 
 [resource]
-Button/colors/font_color = Color(0.96509117, 0.86169845, 0.66960293, 1)
-Button/font_sizes/font_size = 55
+Button/colors/font_color = Color(0.9060503, 0.5562156, 0.77579, 1)
+Button/font_sizes/font_size = 45
 Button/fonts/font = ExtResource("1_xwa22")
