@@ -2,26 +2,31 @@ using Godot;
 
 public partial class Move : Node
 {
-    [Export] public float Speed = 100f;
+	[Export] public float Speed = 100f;
 
-    private CharacterBody2D _body; // referencia al nodo padre (Soldier o Zombie)
+	private CharacterBody2D _body;
 
-    public override void _Ready()
-    {
-        _body = GetParent<CharacterBody2D>();
-    }
+	public override void _Ready()
+	{
+		_body = GetParent<CharacterBody2D>();
+	}
 
-    // Devuelve la dirección hacia la que hay que moverse este frame
-    public Vector2 GetDirectionTo(Vector2 targetPosition)
-    {
-        return (targetPosition - _body.GlobalPosition).Normalized();
-    }
+	public Vector2 GetDirectionTo(Vector2 targetPosition)
+	{
+		return (targetPosition - _body.GlobalPosition).Normalized();
+	}
 
-    // Aplica el movimiento directamente (opcional, para simplificar aún más el uso)
-    public void MoveTowards(Vector2 targetPosition)
-    {
-        Vector2 direction = GetDirectionTo(targetPosition);
-        _body.Velocity = direction * Speed;
-        _body.MoveAndSlide();
-    }
+	public void MoveTowards(Vector2 targetPosition)
+	{
+		Vector2 toTarget = targetPosition - _body.GlobalPosition;
+		float step = Speed * (float)_body.GetPhysicsProcessDeltaTime();
+		_body.Velocity = toTarget.Length() <= step ? toTarget / (float)_body.GetPhysicsProcessDeltaTime() : toTarget.Normalized() * Speed;
+		_body.MoveAndSlide();
+	}
+
+	public void Stop()
+	{
+		_body.Velocity = Vector2.Zero;
+		_body.MoveAndSlide();
+	}
 }
