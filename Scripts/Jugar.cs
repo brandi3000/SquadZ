@@ -1,17 +1,18 @@
 using Godot;
-using System;
-
 
 public partial class Jugar : Button
 {
-	// Called when the node enters the scene tree for the first time.
+	public const string GameScenePath = "res://Scenes/main.tscn";
+
 	public override void _Ready()
 	{
-		Pressed +=jugar;
+		Pressed += jugar;
 	}
 
 	public void jugar()
 	{
-		GetTree().ChangeSceneToFile("res://Scenes/main.tscn");
+		GameManager.Instance.StartNewGame();
+		GetTree().Paused = false;
+		GetTree().ChangeSceneToFile(GameScenePath);
 	}
 }

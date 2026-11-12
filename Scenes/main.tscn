@@ -10,170 +10,108 @@
 [ext_resource type="Script" uid="uid://blalav6q1wujj" path="res://Scripts/Health.cs" id="7_344ge"]
 [ext_resource type="Script" uid="uid://bpmthkng5rw6s" path="res://Scripts/BuildManager.cs" id="9_ynf5e"]
 [ext_resource type="PackedScene" uid="uid://gw3mq5u43jpr" path="res://Scenes/Wall.tscn" id="10_hptm8"]
+[ext_resource type="Script" path="res://Scripts/MapBuilder.cs" id="11_map"]
+[ext_resource type="Script" path="res://Scripts/CameraController.cs" id="12_cam"]
+[ext_resource type="PackedScene" path="res://Scenes/Tower.tscn" id="13_tower"]
+[ext_resource type="PackedScene" path="res://Scenes/Raider.tscn" id="14_raider"]
+[ext_resource type="Texture2D" path="res://Assets/Sprites/spriteBase.png" id="15_base"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_kry3j"]
-size = Vector2(128, 661.5)
+size = Vector2(192, 160)
 
 [node name="Main" type="Node2D" unique_id=312764592]
-position = Vector2(-4, -1)
 script = ExtResource("1_6bp64")
+_soldierScene = ExtResource("2_bo1nx")
 
-[node name="Ground" type="ColorRect" parent="." unique_id=616997217]
-offset_left = 8.0
-offset_right = 1177.0
-offset_bottom = 662.0
-color = Color(0.3372549, 0.3019608, 0, 1)
+[node name="Map" type="Node2D" parent="."]
+script = ExtResource("11_map")
+
+[node name="Structures" type="Node2D" parent="." unique_id=281158806]
+
+[node name="Base" type="StaticBody2D" parent="." unique_id=1456946549]
+position = Vector2(1600, 1000)
+script = ExtResource("5_kry3j")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Base" unique_id=924104768]
+shape = SubResource("RectangleShape2D_kry3j")
+
+[node name="Sprite2D" type="Sprite2D" parent="Base"]
+texture_filter = 1
+texture = ExtResource("15_base")
+
+[node name="Health" type="Node" parent="Base" unique_id=1765908405]
+script = ExtResource("7_344ge")
+MaxHealth = 600.0
+
+[node name="SoldierSpawnPoint" type="Marker2D" parent="Base" unique_id=1785095747]
+position = Vector2(0, 120)
 
 [node name="Units" type="Node2D" parent="." unique_id=276039669]
 
 [node name="Soldier" parent="Units" unique_id=1858594079 instance=ExtResource("2_bo1nx")]
-position = Vector2(962, 369)
+position = Vector2(1520, 1140)
 
 [node name="Soldier2" parent="Units" unique_id=1854766 instance=ExtResource("2_bo1nx")]
-position = Vector2(965, 192)
+position = Vector2(1600, 1150)
 
 [node name="Soldier3" parent="Units" unique_id=28694795 instance=ExtResource("2_bo1nx")]
-position = Vector2(958, 521)
+position = Vector2(1680, 1140)
 
 [node name="Enemies" type="Node2D" parent="." unique_id=1080491660]
 
-[node name="SelectionManager" type="Node" parent="." unique_id=298678029]
+[node name="SpawnNorth" type="Marker2D" parent="." unique_id=1514639352]
+position = Vector2(1600, 40)
+
+[node name="SpawnSouth" type="Marker2D" parent="." unique_id=989471871]
+position = Vector2(1600, 1960)
+
+[node name="SpawnEast" type="Marker2D" parent="." unique_id=1191773032]
+position = Vector2(3160, 1000)
+
+[node name="SpawnWest" type="Marker2D" parent="." unique_id=300658428]
+position = Vector2(40, 1000)
+
+[node name="SpawnNorthWest" type="Marker2D" parent="."]
+position = Vector2(160, 160)
+
+[node name="SpawnNorthEast" type="Marker2D" parent="."]
+position = Vector2(3040, 160)
+
+[node name="SpawnSouthWest" type="Marker2D" parent="."]
+position = Vector2(160, 1840)
+
+[node name="SpawnSouthEast" type="Marker2D" parent="."]
+position = Vector2(3040, 1840)
+
+[node name="SelectionManager" type="Node2D" parent="." unique_id=298678029]
 script = ExtResource("1_jjgbg")
 UnitsContainerPath = NodePath("../Units")
 
 [node name="SpawnManager" type="Node" parent="." unique_id=1731161777]
 script = ExtResource("1_jjvhh")
 ZombieScene = ExtResource("3_jjvhh")
-SpawnPointPaths = Array[NodePath]([NodePath("../SpawnNorth"), NodePath("../SpawnSouth"), NodePath("../SpawnEast"), NodePath("../SpawnWest")])
+RaiderScene = ExtResource("14_raider")
+SpawnPointPaths = Array[NodePath]([NodePath("../SpawnNorth"), NodePath("../SpawnSouth"), NodePath("../SpawnEast"), NodePath("../SpawnWest"), NodePath("../SpawnNorthWest"), NodePath("../SpawnNorthEast"), NodePath("../SpawnSouthWest"), NodePath("../SpawnSouthEast")])
 EnemiesContainerPath = NodePath("../Enemies")
-ZombiesPerWave = 6
 
 [node name="UI" type="CanvasLayer" parent="." unique_id=1259669432]
 
 [node name="HUD" type="Control" parent="UI" unique_id=1996294011]
 layout_mode = 3
-anchors_preset = 0
-offset_left = 733.0
-offset_top = 496.0
-offset_right = 1149.0
-offset_bottom = 643.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 script = ExtResource("6_ynf5e")
 
-[node name="WaveLabel" type="Label" parent="UI/HUD" unique_id=1236740874]
-layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.512
-anchor_top = 0.735
-anchor_right = 0.98100007
-anchor_bottom = 1.014
-offset_left = 0.0079956055
-offset_top = -0.0450058
-offset_right = -0.09603882
-offset_bottom = -0.058013916
-text = "Wave: 123123123213"
-
-[node name="ScrapLabel" type="Label" parent="UI/HUD" unique_id=91356445]
-layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.51000005
-anchor_top = 0.5
-anchor_right = 0.94200003
-anchor_bottom = 0.646
-offset_left = -0.16001892
-offset_top = -1.5
-offset_right = 0.12799072
-offset_bottom = 0.037994385
-text = "Scrap: 10012301231293"
-
-[node name="SpawnSoldierButton" type="Button" parent="UI/HUD" unique_id=976780261]
-layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.68
-anchor_top = -3.2380002
-anchor_right = 0.96400005
-anchor_bottom = -3.0270002
-offset_left = 0.11999512
-offset_top = -0.013977051
-offset_right = -0.024017334
-offset_bottom = -0.030975342
-text = "Spawn Soldier"
-
-[node name="BaseHealthBar" type="ProgressBar" parent="UI/HUD" unique_id=1361002207]
-layout_mode = 0
-offset_left = 364.0
-offset_top = -213.0
-offset_right = 389.0
-offset_bottom = -88.0
-fill_mode = 2
-
-[node name="BuildWallButton" type="Button" parent="UI/HUD" unique_id=1956893772]
-layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.683
-anchor_top = -2.9390001
-anchor_right = 0.966
-anchor_bottom = -2.7280002
-offset_left = -0.12802124
-offset_top = 0.03302002
-offset_right = 0.14398193
-offset_bottom = -10.983978
-text = "Spawn Wall"
-
-[node name="NextDayButton" type="Button" parent="UI/HUD" unique_id=1318700783]
-layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.68500006
-anchor_top = -2.653
-anchor_right = 0.96400005
-anchor_bottom = -2.4420002
-offset_left = 0.039978027
-offset_top = -0.008972168
-offset_right = -0.024017334
-offset_bottom = -0.025970459
-text = "Pasar de dia"
-
-[node name="SpawnNorth" type="Marker2D" parent="." unique_id=1514639352]
-position = Vector2(650, 70)
-gizmo_extents = 307.2
-
-[node name="SpawnSouth" type="Marker2D" parent="." unique_id=989471871]
-position = Vector2(570, 583)
-gizmo_extents = 461.0
-
-[node name="SpawnEast" type="Marker2D" parent="." unique_id=1191773032]
-position = Vector2(598, 425)
-gizmo_extents = 370.1
-
-[node name="SpawnWest" type="Marker2D" parent="." unique_id=300658428]
-position = Vector2(112, 376)
-gizmo_extents = 405.1
-
-[node name="Base" type="StaticBody2D" parent="." unique_id=1456946549]
-position = Vector2(1087, 340)
-script = ExtResource("5_kry3j")
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Base" unique_id=924104768]
-position = Vector2(19, -7)
-shape = SubResource("RectangleShape2D_kry3j")
-
-[node name="ColorRect" type="ColorRect" parent="Base" unique_id=1064879976]
-offset_left = -43.0
-offset_top = -348.0
-offset_right = 49.0
-offset_bottom = 317.0
-color = Color(0.38445798, 0.14056447, 0.19657516, 1)
-
-[node name="Health" type="Node" parent="Base" unique_id=1765908405]
-script = ExtResource("7_344ge")
-MaxHealth = 500.0
-
-[node name="SoldierSpawnPoint" type="Marker2D" parent="Base" unique_id=1785095747]
-position = Vector2(-93, 29)
-
-[node name="Structures" type="Node2D" parent="." unique_id=281158806]
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(1600, 1000)
+script = ExtResource("12_cam")
 
 [node name="BuildManager" type="Node2D" parent="." unique_id=1974117511 node_paths=PackedStringArray("_structuresContainer")]
 script = ExtResource("9_ynf5e")
 _wallScene = ExtResource("10_hptm8")
+_towerScene = ExtResource("13_tower")
 _structuresContainer = NodePath("../Structures")
-WallCost = 10

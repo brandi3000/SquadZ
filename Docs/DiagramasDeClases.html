@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SquadZ! – Diagramas de clases</title>
+<style>
+  :root { --bg:#f7f7f5; --card:#ffffff; --ink:#1d1d1f; --muted:#5f6368; --line:#dadce0; --accent:#3c6b35; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg:#16181b; --card:#1f2226; --ink:#e8eaed; --muted:#a0a4a8; --line:#33373c; --accent:#a8d86a; }
+  }
+  :root[data-theme="dark"] { --bg:#16181b; --card:#1f2226; --ink:#e8eaed; --muted:#a0a4a8; --line:#33373c; --accent:#a8d86a; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.55 system-ui, "Segoe UI", sans-serif; }
+  main { max-width:1150px; margin:0 auto; padding:24px 16px 64px; }
+  h1 { margin:0 0 4px; font-size:26px; }
+  .sub { color:var(--muted); margin:0 0 20px; }
+  nav { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:24px; }
+  nav a { color:var(--accent); text-decoration:none; border:1px solid var(--line); border-radius:999px; padding:4px 12px; background:var(--card); font-size:14px; }
+  section { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px 18px 8px; margin-bottom:22px; }
+  h2 { margin:0 0 6px; font-size:19px; }
+  section > p { color:var(--muted); margin:0 0 12px; }
+  .mermaid { overflow-x:auto; background:#fff; border-radius:8px; padding:8px; }
+  ul { margin:8px 0 14px; padding-left:20px; }
+  li { margin:3px 0; }
+  code { background:rgba(127,127,127,.15); padding:1px 5px; border-radius:4px; font-size:13px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>SquadZ! — Diagramas de clases (versión completa)</h1>
+  <p class="sub">Godot 4 (.NET / C#) · 33 scripts · 7 escenas · basado en el GDD</p>
+  <nav>
+    <a href="#general">1. Vista general</a>
+    <a href="#datos">2. Datos y estado global</a>
+    <a href="#unidades">3. Unidades y escuadras</a>
+    <a href="#enemigos">4. Enemigos</a>
+    <a href="#construccion">5. Construcción</a>
+    <a href="#ui">6. Interfaz</a>
+    <a href="#ciclo">7. Ciclo de juego</a>
+    <a href="#escenas">8. Escenas</a>
+  </nav>
+
+  <section id="general">
+    <h2>1. Vista general (herencia de Godot)</h2>
+    <p>Todas las clases y el nodo de Godot del que heredan. Las clases estáticas (sin nodo) están abajo.</p>
+    <pre class="mermaid">
+classDiagram
+  direction TB
+  class Node { &lt;&lt;Godot&gt;&gt; }
+  class Node2D { &lt;&lt;Godot&gt;&gt; }
+  class CharacterBody2D { &lt;&lt;Godot&gt;&gt; }
+  class StaticBody2D { &lt;&lt;Godot&gt;&gt; }
+  class Camera2D { &lt;&lt;Godot&gt;&gt; }
+  class Control { &lt;&lt;Godot&gt;&gt; }
+  class Button { &lt;&lt;Godot&gt;&gt; }
+  Node <|-- GameManager
+  Node <|-- Health
+  Node <|-- Move
+  Node <|-- Buildable
+  Node <|-- SpawnManager
+  Node <|-- SquadManager
+  Node2D <|-- Main
+  Node2D <|-- BuildManager
+  Node2D <|-- SelectionManager
+  Node2D <|-- MapBuilder
+  Node2D <|-- Effects
+  Node2D <|-- BlastRing
+  CharacterBody2D <|-- Soldier
+  CharacterBody2D <|-- Zombie
+  CharacterBody2D <|-- Raider
+  StaticBody2D <|-- Base
+  StaticBody2D <|-- Structure
+  Camera2D <|-- CameraController
+  Control <|-- Hud
+  Control <|-- PerkSelectionPanel
+  Control <|-- PauseMenu
+  Control <|-- GameOverScreen
+  Control <|-- Minimap
+  Button <|-- Jugar
+  Button <|-- Cargar
+  Button <|-- Mejoras
+  Button <|-- Salir
+  class GameData { &lt;&lt;static&gt;&gt; }
+  class SaveManager { &lt;&lt;static&gt;&gt; }
+  class Combat { &lt;&lt;static&gt;&gt; }
+  class UiTheme { &lt;&lt;static&gt;&gt; }
+    </pre>
+  </section>
+
+  <section id="datos">
+    <h2>2. Datos, estado global y guardado</h2>
+    <p><code>GameData</code> tiene las tablas de balance. <code>GameManager</code> (autoload) guarda el estado de la partida. <code>SaveManager</code> lo escribe en JSON.</p>
+    <pre class="mermaid">
+classDiagram
+  direction LR
+  class GameManager {
+    &lt;&lt;Autoload&gt;&gt;
+    +GameManager Instance$
+    +GameStats Stats
+    +SaveData PendingLoad
+    +int CurrentScrap
+    +int CurrentDay
+    +int CurrentRound
+    +GameState CurrentState
+    +Perks
+    +StartNewGame()
+    +RestoreFromSave(SaveData)
+    +AddScrap(int)
+    +AddScrapFromKill(int) int
+    +SpendScrap(int) bool
+    +StealAllScrap() int
+    +SetDay(int, int)
+    +SetState(GameState)
+    +Radio(string, RadioKind)
+    +AddPerk(PerkType)
+    +NotifyBossDefeated()
+    +TriggerGameOver()
+    +GetUnitCost(UnitType) int
+    +multiplicadores de perks
+  }
+  class GameData {
+    &lt;&lt;static&gt;&gt;
+    +Units
+    +Enemies
+    +Structures
+    +Perks
+    +DayHealthMultiplier(int)$
+    +DayDamageMultiplier(int)$
+  }
+  class GameStats {
+    +Kills
+    +BossesKilled
+    +ScrapEarned / Spent / Stolen
+    +UnitsRecruited / Lost
+    +StructuresBuilt / Lost
+    +DamageDealt
+    +TimePlayed
+    +AddKill(EnemyType)
+  }
+  class SaveManager {
+    &lt;&lt;static&gt;&gt;
+    +Save(Main) bool
+    +Load() SaveData
+    +DeleteSave()
+    +LoadRecords() RecordsData
+    +UpdateRecords(GameStats)
+  }
+  class SaveData {
+    +Day
+    +Scrap
+    +BaseHealth
+    +Perks
+    +Stats
+    +Units: List~UnitSave~
+    +Structures: List~StructureSave~
+  }
+  GameManager *-- GameStats
+  GameManager ..> GameData : lee costos y perks
+  GameManager ..> SaveManager : al morir borra y guarda récords
+  SaveManager ..> SaveData
+  SaveData *-- GameStats
+  GameData *-- UnitStats
+  GameData *-- EnemyStats
+  GameData *-- StructureStats
+  GameData *-- PerkInfo
+    </pre>
+  </section>
+
+  <section id="unidades">
+    <h2>3. Unidades, escuadras y combate</h2>
+    <p>Hay un solo <code>Soldier</code> configurable en 5 tipos. <code>SquadManager</code> implementa los escuadrones orgánicos del GDD.</p>
+    <pre class="mermaid">
+classDiagram
+  direction LR
+  class Soldier {
+    +UnitType Type
+    +SoldierOrder Order
+    +int SquadId
+    +bool IsLeader
+    +bool Demoralized
+    +Structure Garrison
+    +float Damage
+    +float Range
+    +float Cooldown
+    +Setup(UnitType)
+    +MoveTo(Vector2)
+    +ReturnToBase(Vector2)
+    +AssignToBuild(Structure)
+    +GarrisonIn(Structure)
+    +Stop()
+    +SetSquad(int, bool)
+    +SetDemoralized(bool)
+    -Shoot()
+    -HandleBuildBehavior()
+    -HandleGarrison()
+    -HandleHealing()
+  }
+  class SquadManager {
+    +SquadManager Instance$
+    +AssignSquad(int, soldados)
+    +GetMembers(int)
+    +GetLeader(int) Soldier
+    +OnSoldierDied(Soldier)
+  }
+  class Health {
+    +MaxHealth
+    +DamageTakenMultiplier
+    +TakeDamage(float) bool
+    +Heal(float)
+    +SetMaxHealth(float, bool)
+    +signal HealthChanged
+    +signal Died
+  }
+  class Move {
+    +Speed
+    +MoveTowards(Vector2)
+    +Stop()
+  }
+  class Base {
+    +HealRadius
+    +IsInHealZone(Vector2) bool
+    +ApplyFortalezaPerk()
+  }
+  class Combat {
+    &lt;&lt;static&gt;&gt;
+    +Damage(Node2D, float)
+    +EdgeDistance(a, b)
+    +InRadius(...)
+    +AreaDamage(...)
+  }
+  Soldier *-- Health
+  Soldier *-- Move
+  Base *-- Health
+  SquadManager o-- Soldier : escuadras 1-4
+  Soldier ..> Base : se cura y recupera moral
+  Soldier ..> Combat
+  Soldier ..> Effects : disparos
+    </pre>
+    <ul>
+      <li><b>Líder ★:</b> da +10% de daño a los miembros cercanos. Si muere, asume el de más vida y la escuadra queda <b>sin moral ▼</b> (−25% de daño) hasta curarse en la base.</li>
+      <li><b>Torre:</b> hasta 2 soldados arriba, con +40% de alcance y la mitad del daño recibido.</li>
+    </ul>
+  </section>
+
+  <section id="enemigos">
+    <h2>4. Enemigos: mutaciones, jefe y saqueadores</h2>
+    <pre class="mermaid">
+classDiagram
+  direction LR
+  class Zombie {
+    +EnemyType Type
+    +int Day
+    +bool IsBoss
+    +signal Died
+    +Setup(EnemyType, int)
+    -FindClosestSoldier()
+    -DetectBlockers()
+    -TryAttack(Node2D)
+    -Explode(float)
+    -Die(bool)
+  }
+  class Raider {
+    +RaiderState State
+    +bool InCover
+    +signal Died
+    +Setup(int)
+    -Advance()
+    -Fight()
+    -Flee()
+    -FindCover()
+    -StealScrap()
+  }
+  class SpawnManager {
+    +StartNewDay()
+    +ResumeFromSave(int)
+    +SkipWait()
+    +ComposeWave(int, int) List
+    -SpawnEnemy(EnemyType)
+    -OnRoundCompleted()
+  }
+  class EnemyType {
+    &lt;&lt;enumeration&gt;&gt;
+    Normal
+    Corredor
+    Tanque
+    Boomer
+    Jefe
+    Saqueador
+  }
+  SpawnManager ..> Zombie : instancia con Setup
+  SpawnManager ..> Raider : día 10+
+  SpawnManager ..> GameManager : SetDay / SetState
+  SpawnManager ..> SaveManager : autoguardado
+  Zombie --> EnemyType
+  Zombie *-- Health
+  Zombie *-- Move
+  Raider *-- Health
+  Raider *-- Move
+  Zombie ..> Structure : ataca muros que bloquean
+  Raider ..> GameManager : StealAllScrap()
+  Zombie ..> GameManager : chatarra / jefe abatido
+    </pre>
+  </section>
+
+  <section id="construccion">
+    <h2>5. Construcción, selección y cámara</h2>
+    <pre class="mermaid">
+classDiagram
+  direction LR
+  class BuildManager {
+    +bool IsPlacing
+    +StartPlacing(StructureType)
+    +CreateStructure(StructureType) Structure
+    +CancelPlacement()
+    -SnapToGrid()
+    -IsValidPlacement()
+    -ConfirmPlacement(bool)
+  }
+  class Structure {
+    +StructureType Type
+    +bool IsCompleted
+    +bool NeedsWork
+    +bool CanGarrison
+    +SetPreviewMode(bool)
+    +SetPlacementValid(bool)
+    +LoadState(float, float)
+    +TryGarrison(Soldier) int
+    +ReleaseGarrison(Soldier)
+  }
+  class Buildable {
+    +WorkPower
+    +AddWorker(float)
+    +RemoveWorker(float)
+    +SetProgress(float)
+  }
+  class SelectionManager {
+    +Selected
+    +signal SelectionChanged
+    +SelectSquad(int)
+    +SelectAll()
+    +OrderReturnToBase()
+    +OrderStop()
+    +AssignSelectedToBuild(Structure)
+    -BoxSelect()
+    -OrderOnStructure(Structure)
+  }
+  class CameraController {
+    +CenterOn(Vector2)
+    +CenterOnBase()
+  }
+  class MapBuilder {
+    +Seed
+    -PlaceProps()
+  }
+  BuildManager --> Structure : Wall.tscn / Tower.tscn
+  Structure *-- Buildable
+  Structure *-- Health
+  Structure o-- Soldier : guarnición (torre)
+  SelectionManager ..> Soldier : órdenes
+  SelectionManager ..> SquadManager : Ctrl+1-4
+  BuildManager ..> SelectionManager : asigna seleccionados
+  MapBuilder ..> Raider : grupo "cover"
+    </pre>
+  </section>
+
+  <section id="ui">
+    <h2>6. Interfaz (LCD, manpack y walkie-talkie)</h2>
+    <pre class="mermaid">
+classDiagram
+  direction TB
+  class Hud {
+    -barra superior (día, chatarra, base)
+    -botonera con íconos
+    -radio (3 mensajes, se borran)
+    -minimapa (M)
+    -barra del jefe
+    +_UnhandledInput()
+    -OnRadioMessage()
+    -OnBossDefeated()
+    -OnGameOver()
+  }
+  class PerkSelectionPanel {
+    +Open()
+    -Choose(PerkType)
+  }
+  class PauseMenu {
+    +Open()
+    +Close()
+  }
+  class GameOverScreen {
+    +ShowResults()
+  }
+  class Minimap
+  class UiTheme {
+    &lt;&lt;static&gt;&gt;
+    +Build() Theme
+  }
+  Hud *-- PerkSelectionPanel
+  Hud *-- PauseMenu
+  Hud *-- GameOverScreen
+  Hud *-- Minimap
+  Hud ..> UiTheme
+  Hud ..> GameManager : escucha señales
+  Hud ..> Main : TrySpawnUnit
+  Hud ..> BuildManager : StartPlacing
+  Hud ..> SelectionManager : órdenes
+  Hud ..> SpawnManager : StartNewDay / SkipWait
+  PauseMenu ..> Main : SaveGame
+  Cargar ..> SaveManager : Load
+  Cargar ..> GameManager : RestoreFromSave
+  Jugar ..> GameManager : StartNewGame
+  Mejoras ..> SaveManager : LoadRecords
+    </pre>
+  </section>
+
+  <section id="ciclo">
+    <h2>7. Ciclo de juego</h2>
+    <pre class="mermaid">
+stateDiagram-v2
+  [*] --> Menu
+  Menu --> Oleada1 : Jugar (partida nueva)
+  Menu --> EntreDias : Cargar (partida guardada)
+  Oleada1 : Combate · Oleada 1
+  Espera : Combate · 20 s (N adelanta)
+  Oleada2 : Combate · Oleada 2 (jefe cada 5 días)
+  Perk : Pausa · elegir 1 de 3 perks
+  EntreDias : Entre días · autoguardado
+  GameOver : Estadísticas + perks
+  Oleada1 --> Espera : sin enemigos
+  Espera --> Oleada2
+  Oleada2 --> Perk : jefe abatido
+  Perk --> Oleada2
+  Oleada2 --> EntreDias : sin enemigos
+  EntreDias --> Oleada1 : Pasar de día (Enter)
+  Oleada1 --> GameOver : base destruida
+  Oleada2 --> GameOver : base destruida
+  GameOver --> Oleada1 : Nueva partida
+  GameOver --> Menu : Menú principal
+    </pre>
+  </section>
+
+  <section id="escenas">
+    <h2>8. Árbol de main.tscn</h2>
+    <pre class="mermaid">
+flowchart LR
+  Main["Main (Main.cs)"] --> Map["Map (MapBuilder.cs) · 3200x2000"]
+  Main --> Str["Structures (muros y torres)"]
+  Main --> Base["Base (Base.cs)"] --> BH["Health 600"]
+  Base --> BS[Sprite2D spriteBase]
+  Base --> SSP[SoldierSpawnPoint]
+  Main --> Units["Units (Soldier ×3)"]
+  Main --> Enemies["Enemies (Zombie / Raider)"]
+  Main --> SP["8 Marker2D de aparición"]
+  Main --> SelM["SelectionManager.cs"]
+  Main --> SpM["SpawnManager.cs"]
+  Main --> UI["UI · CanvasLayer"] --> HUD["HUD (Hud.cs) · arma la UI por código"]
+  Main --> Cam["Camera2D (CameraController.cs)"]
+  Main --> BM["BuildManager.cs"]
+  Main -.creados por código.-> SQ["SquadManager"] & FX["Effects"]
+  GM(["GameManager · autoload"])
+    </pre>
+  </section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({ startOnLoad: true, theme: "default", securityLevel: "loose", classDiagram: { useMaxWidth: true } });
+</script>
+</body>
+</html>

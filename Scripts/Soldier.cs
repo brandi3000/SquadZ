@@ -1,225 +1,194 @@
 using Godot;
-using System.Collections.Generic;
-using System.Linq;
+
+public enum SoldierOrder { Idle, Move, Build, ReturnToBase, Garrison }
 
 public partial class Soldier : CharacterBody2D
 {
-	[Export] public float Speed = 150f;
+	[Export] public UnitType Type = UnitType.Fusilero;
 	[Export] public float StopDistance = 8f;
 
-	[Export] public float AttackDamage = 50f;
-	[Export] public float AttackRange = 200f;
-	[Export] public float AttackCooldown = 1f;
+	private const float BuildReach = 26f;
+	private const float LeaderAuraRadius = 240f;
 
-	private float _attackTimer = 0f;
-	private Node2D _target;
-	private List<Node2D> _visibleEnemies = new List<Node2D>();
-	private Area2D _detectionArea;
+	private UnitStats _stats;
 	private Health _health;
-
-	private Vector2 _targetPosition;
-	private bool _isMoving = false;
-	private bool _isSelected = false;
+	private Move _move;
 	private Node2D _selectionRing;
-
-	private Node2D _visualNode;
+	private Sprite2D _visualNode;
 	private Line2D _moveLine;
 	private ProgressBar _healthBar;
+	private CollisionShape2D _collision;
+	private Label _squadLabel;
+	private Base _base;
 
-	private Move _move;
+	private Node2D _target;
+	private float _attackTimer;
+	private float _retargetTimer;
 
+	private Vector2 _targetPosition;
 	private Structure _buildTarget;
-	private bool _isWorking = false;
-	private const float BuildRange = 20f;
+	private float _workingPower;
+	private Structure _garrison;
+	private bool _isSelected;
+
+	public SoldierOrder Order { get; private set; } = SoldierOrder.Idle;
+	public int SquadId { get; private set; }
+	public bool IsLeader { get; private set; }
+	public bool Demoralized { get; private set; }
+	public bool IsSelected => _isSelected;
+	public Health Health => _health;
+	public Structure Garrison => _garrison;
+	public UnitStats Stats => _stats;
+
+	public float Damage
+	{
+		get
+		{
+			float value = _stats.Damage * GameManager.Instance.DamageMultiplier;
+			if (Demoralized) value *= 0.75f;
+			if (HasLeaderNearby()) value *= 1.1f;
+			return value;
+		}
+	}
+
+	public float Range => _stats.Range * GameManager.Instance.RangeMultiplier * (_garrison != null ? 1.4f : 1f);
+	public float Cooldown => _stats.Cooldown * GameManager.Instance.CooldownMultiplier;
+	public float BuildPower => _stats.BuildPower > 0 ? _stats.BuildPower : 1f;
+
+	public void Setup(UnitType type)
+	{
+		Type = type;
+	}
 
 	public override void _Ready()
 	{
 		AddToGroup("soldiers");
+		_stats = GameData.Units[Type];
+		CollisionLayer = Combat.LayerSoldiers;
+		CollisionMask = Combat.LayerWorld;
 
 		_selectionRing = GetNode<Node2D>("SelectionRing");
 		_selectionRing.Visible = false;
 		_targetPosition = GlobalPosition;
 
 		_health = GetNode<Health>("Health");
+		_health.SetMaxHealth(_stats.MaxHealth * GameManager.Instance.UnitHealthMultiplier, true);
 		_health.Died += OnDied;
+		_health.HealthChanged += OnHealthChanged;
 
-		_detectionArea = GetNode<Area2D>("DetectionArea");
-		_detectionArea.BodyEntered += OnBodyEntered;
-		_detectionArea.BodyExited += OnBodyExited;
+		var detectionArea = GetNode<Area2D>("DetectionArea");
+		detectionArea.Monitoring = false;
+		detectionArea.Monitorable = false;
 
-		_visualNode = GetNode<Node2D>("Sprite2D");
+		_collision = GetNode<CollisionShape2D>("CollisionShape2D");
+		_visualNode = GetNode<Sprite2D>("Sprite2D");
+		_visualNode.Texture = GD.Load<Texture2D>(_stats.Texture);
 
 		_move = GetNode<Move>("Move");
+		_move.Speed = _stats.Speed * GameManager.Instance.SpeedMultiplier;
 
 		_healthBar = GetNode<ProgressBar>("HealthBar");
 		_healthBar.MaxValue = _health.MaxHealth;
 		_healthBar.Value = _health.CurrentHealth;
-
-		_health.HealthChanged += OnHealthChanged;
+		_healthBar.AddThemeStyleboxOverride("background", new StyleBoxFlat { BgColor = new Color(0.2f, 0.2f, 0.2f) });
+		_healthBar.AddThemeStyleboxOverride("fill", new StyleBoxFlat { BgColor = new Color(0.45f, 0.8f, 0.3f) });
 
 		_moveLine = GetNode<Line2D>("MoveLine");
+		_moveLine.Width = 2f;
 		_moveLine.ClearPoints();
 
-		var bgStyle = new StyleBoxFlat();
-		bgStyle.BgColor = new Color(0.2f, 0.2f, 0.2f); // gris oscuro
+		_squadLabel = new Label { Position = new Vector2(-30, -48), Size = new Vector2(60, 18), HorizontalAlignment = HorizontalAlignment.Center };
+		_squadLabel.AddThemeFontSizeOverride("font_size", 13);
+		_squadLabel.AddThemeColorOverride("font_outline_color", Colors.Black);
+		_squadLabel.AddThemeConstantOverride("outline_size", 4);
+		AddChild(_squadLabel);
+		UpdateSquadLabel();
 
-		var fillStyle = new StyleBoxFlat();
-		fillStyle.BgColor = new Color(0.8f, 0.1f, 0.1f); // rojo
+		var bases = GetTree().GetNodesInGroup("base");
+		if (bases.Count > 0) _base = bases[0] as Base;
 
-		_healthBar.AddThemeStyleboxOverride("background", bgStyle);
-		_healthBar.AddThemeStyleboxOverride("fill", fillStyle);
+		GameManager.Instance.PerksChanged += OnPerksChanged;
+	}
+
+	public override void _ExitTree()
+	{
+		if (GameManager.Instance != null)
+			GameManager.Instance.PerksChanged -= OnPerksChanged;
 	}
 
 	public override void _PhysicsProcess(double delta)
 	{
-		if (_buildTarget != null && IsInstanceValid(_buildTarget))
-		{
-			HandleBuildBehavior((float)delta);
-			return;
-		}
+		float dt = (float)delta;
+		_attackTimer -= dt;
+		_retargetTimer -= dt;
 
-		if (_target == null || !IsInstanceValid(_target))
+		if (_retargetTimer <= 0f || !IsValidEnemy(_target) || GlobalPosition.DistanceTo(_target.GlobalPosition) > Range)
 		{
 			_target = FindClosestEnemy();
+			_retargetTimer = 0.25f;
 		}
 
-		bool hasTargetInRange = false;
-
-		if (_target != null)
+		bool hasTargetInRange = _target != null;
+		if (hasTargetInRange)
 		{
-			float distance = GlobalPosition.DistanceTo(_target.GlobalPosition);
-			hasTargetInRange = distance <= AttackRange;
-
-			if (hasTargetInRange)
-			{
-				RotateTowards(_target.GlobalPosition, (float)delta);
-				TryAttack((float)delta);
-			}
+			RotateTowards(_target.GlobalPosition, dt);
+			if (_attackTimer <= 0f) Shoot();
 		}
 
-		if (_isMoving)
+		HandleHealing(dt);
+
+		switch (Order)
 		{
-			float distanceToTarget = GlobalPosition.DistanceTo(_targetPosition);
-			if (distanceToTarget <= StopDistance)
-			{
-				Velocity = Vector2.Zero;
-				_isMoving = false;
-				_moveLine.ClearPoints();
-				MoveAndSlide();
-			}
-			else
-			{
-				_move.MoveTowards(_targetPosition); // 👈 usa el componente, ya hace Velocity + MoveAndSlide adentro
-
-				if (!hasTargetInRange)
-				{
-					RotateTowards(_targetPosition, (float)delta);
-				}
-
-				UpdateMoveLine(_targetPosition, new Color(0.6f, 0.9f, 1f));
-			}
+			case SoldierOrder.Move:
+			case SoldierOrder.ReturnToBase:
+				HandleMovement(dt, hasTargetInRange);
+				break;
+			case SoldierOrder.Build:
+				HandleBuildBehavior(dt, hasTargetInRange);
+				break;
+			case SoldierOrder.Garrison:
+				HandleGarrison(dt, hasTargetInRange);
+				break;
+			default:
+				_move.Stop();
+				break;
 		}
-		else
-		{
-			Velocity = Vector2.Zero;
-			MoveAndSlide();
-		}
-	}
-
-	private void DrawShootLine(Vector2 from, Vector2 to)
-	{
-		Line2D line = new Line2D();
-		line.AddPoint(from);
-		line.AddPoint(to);
-		line.Width = 2f;
-		line.DefaultColor = new Color(1f, 0.9f, 0.2f);
-
-		GetTree().CurrentScene.AddChild(line);
-
-		GetTree().CreateTimer(0.3f).Timeout += () => line.QueueFree();
-	}
-
-	public void AssignToBuild(Structure structure)
-	{
-		if (_buildTarget != null && IsInstanceValid(_buildTarget))
-		{
-			_buildTarget.Buildable.RemoveWorker();
-		}
-
-		_buildTarget = structure;
-		_isMoving = false;
-	}
-
-	private void TryAttack(float delta)
-	{
-		_attackTimer -= delta;
-		if (_attackTimer <= 0f)
-		{
-			_attackTimer = AttackCooldown;
-
-			if (_target.HasNode("Health"))
-			{
-				Health targetHealth = _target.GetNode<Health>("Health");
-				targetHealth.TakeDamage(AttackDamage);
-
-				DrawShootLine(GlobalPosition, _target.GlobalPosition);
-			}
-		}
-	}
-
-	private void UpdateMoveLine(Vector2 targetPosition, Color color)
-	{
-		_moveLine.ClearPoints();
-		_moveLine.DefaultColor = color;
-		_moveLine.AddPoint(Vector2.Zero);
-		_moveLine.AddPoint(targetPosition - GlobalPosition);
-	}
-
-	private void OnHealthChanged(float current, float max)
-	{
-		_healthBar.Value = current;
-	}
-
-	private void RotateTowards(Vector2 worldPoint, float delta)
-	{
-		float targetAngle = (worldPoint - GlobalPosition).Angle() + Mathf.Pi / 2f;
-		_visualNode.Rotation = Mathf.LerpAngle(_visualNode.Rotation, targetAngle, delta * 10f);
-	}
-
-	private Node2D FindClosestEnemy()
-	{
-		if (_visibleEnemies.Count == 0) return null;
-		return _visibleEnemies
-			.Where(e => IsInstanceValid(e))
-			.OrderBy(e => GlobalPosition.DistanceTo(e.GlobalPosition))
-			.FirstOrDefault();
-	}
-
-	private void OnBodyEntered(Node2D body)
-{
-	if (body is Zombie)
-	{
-		_visibleEnemies.Add(body);
-	}
-}
-
-	private void OnBodyExited(Node2D body)
-	{
-		if (body is Zombie)
-		{
-			_visibleEnemies.Remove(body);
-		}
-	}
-
-	private void OnDied()
-	{
-		QueueFree();
 	}
 
 	public void MoveTo(Vector2 worldPosition)
 	{
-		_targetPosition = worldPosition;
-		_isMoving = true;
+		ClearTask();
+		_targetPosition = ClampToMap(worldPosition);
+		Order = SoldierOrder.Move;
+	}
+
+	public void ReturnToBase(Vector2 healPoint)
+	{
+		ClearTask();
+		_targetPosition = ClampToMap(healPoint);
+		Order = SoldierOrder.ReturnToBase;
+	}
+
+	public void AssignToBuild(Structure structure)
+	{
+		if (structure == null || !IsInstanceValid(structure)) return;
+		ClearTask();
+		_buildTarget = structure;
+		Order = SoldierOrder.Build;
+	}
+
+	public void GarrisonIn(Structure tower)
+	{
+		if (tower == null || !IsInstanceValid(tower)) return;
+		ClearTask();
+		_buildTarget = tower;
+		Order = SoldierOrder.Garrison;
+	}
+
+	public void Stop()
+	{
+		ClearTask();
+		Order = SoldierOrder.Idle;
 	}
 
 	public void Select()
@@ -233,46 +202,255 @@ public partial class Soldier : CharacterBody2D
 		_isSelected = false;
 		_selectionRing.Visible = false;
 	}
-	private void HandleBuildBehavior(float delta)
+
+	public void SetSquad(int squadId, bool isLeader)
 	{
-		if (_buildTarget.Buildable.IsCompleted)
+		SquadId = squadId;
+		IsLeader = squadId > 0 && isLeader;
+		UpdateSquadLabel();
+	}
+
+	public void SetDemoralized(bool value)
+	{
+		Demoralized = value;
+		_visualNode.Modulate = value ? new Color(0.75f, 0.8f, 1f) : Colors.White;
+		UpdateSquadLabel();
+	}
+
+	public void RestoreHealth(float value)
+	{
+		_health.SetCurrentHealth(value);
+	}
+
+	public void OnGarrisonLost()
+	{
+		_garrison = null;
+		_collision.SetDeferred(CollisionShape2D.PropertyName.Disabled, false);
+		_health.DamageTakenMultiplier = 1f;
+		_buildTarget = null;
+		Order = SoldierOrder.Idle;
+	}
+
+	private void ClearTask()
+	{
+		if (_buildTarget != null && IsInstanceValid(_buildTarget) && _workingPower > 0f)
+			_buildTarget.Buildable.RemoveWorker(_workingPower);
+		_workingPower = 0f;
+
+		if (_garrison != null)
 		{
-			if (_isWorking)
+			Structure tower = _garrison;
+			_garrison = null;
+			if (IsInstanceValid(tower))
 			{
-				_buildTarget.Buildable.RemoveWorker();
-				_isWorking = false;
+				tower.ReleaseGarrison(this);
+				GlobalPosition = tower.GlobalPosition + new Vector2(0, tower.Radius + 22f);
 			}
-			_buildTarget = null;
-			Velocity = Vector2.Zero;
-			MoveAndSlide();
+			_collision.SetDeferred(CollisionShape2D.PropertyName.Disabled, false);
+			_health.DamageTakenMultiplier = 1f;
+		}
+
+		_buildTarget = null;
+		_moveLine.ClearPoints();
+	}
+
+	private void HandleMovement(float delta, bool hasTargetInRange)
+	{
+		float distanceToTarget = GlobalPosition.DistanceTo(_targetPosition);
+		if (distanceToTarget <= StopDistance)
+		{
+			_move.Stop();
 			_moveLine.ClearPoints();
+			Order = SoldierOrder.Idle;
 			return;
 		}
 
-		float distance = GlobalPosition.DistanceTo(_buildTarget.GlobalPosition);
+		_move.MoveTowards(_targetPosition);
+		if (!hasTargetInRange) RotateTowards(_targetPosition, delta);
+		Color color = Order == SoldierOrder.ReturnToBase ? new Color(0.5f, 1f, 0.5f) : new Color(0.6f, 0.9f, 1f);
+		UpdateMoveLine(_targetPosition, color);
+	}
 
-		if (distance <= BuildRange)
+	private void HandleBuildBehavior(float delta, bool hasTargetInRange)
+	{
+		if (_buildTarget == null || !IsInstanceValid(_buildTarget) || _buildTarget.IsWorkDone)
 		{
-			if (!_isWorking)
+			Stop();
+			_move.Stop();
+			return;
+		}
+
+		float distance = Combat.EdgeDistance(this, _buildTarget);
+		if (distance <= BuildReach)
+		{
+			if (_workingPower <= 0f)
 			{
-				_buildTarget.Buildable.AddWorker();
-				_isWorking = true;
+				_workingPower = BuildPower;
+				_buildTarget.Buildable.AddWorker(_workingPower);
 			}
-			Velocity = Vector2.Zero;
-			MoveAndSlide();
+			_move.Stop();
 			_moveLine.ClearPoints();
 		}
 		else
 		{
 			_move.MoveTowards(_buildTarget.GlobalPosition);
-			RotateTowards(_buildTarget.GlobalPosition, delta);
-			UpdateBuildLine();
+			if (!hasTargetInRange) RotateTowards(_buildTarget.GlobalPosition, delta);
+			UpdateMoveLine(_buildTarget.GlobalPosition, new Color(1f, 0.8f, 0.2f));
 		}
 	}
 
-	private void UpdateBuildLine()
+	private void HandleGarrison(float delta, bool hasTargetInRange)
 	{
-		UpdateMoveLine(_buildTarget.GlobalPosition, new Color(1f, 0.8f, 0.2f));
+		if (_garrison != null)
+		{
+			Velocity = Vector2.Zero;
+			return;
+		}
+
+		if (_buildTarget == null || !IsInstanceValid(_buildTarget) || !_buildTarget.IsCompleted)
+		{
+			Stop();
+			return;
+		}
+
+		float distance = GlobalPosition.DistanceTo(_buildTarget.GlobalPosition);
+		if (distance <= _buildTarget.Radius + 30f)
+		{
+			int slot = _buildTarget.TryGarrison(this);
+			if (slot < 0)
+			{
+				GameManager.Instance.Radio($"Torre llena: {_stats.Name} se queda abajo.", RadioKind.Warning);
+				Stop();
+				return;
+			}
+			_garrison = _buildTarget;
+			_collision.SetDeferred(CollisionShape2D.PropertyName.Disabled, true);
+			_health.DamageTakenMultiplier = 0.5f;
+			GlobalPosition = _garrison.GetSlotPosition(slot);
+			Velocity = Vector2.Zero;
+			_moveLine.ClearPoints();
+			return;
+		}
+
+		_move.MoveTowards(_buildTarget.GlobalPosition);
+		if (!hasTargetInRange) RotateTowards(_buildTarget.GlobalPosition, delta);
+		UpdateMoveLine(_buildTarget.GlobalPosition, new Color(0.8f, 0.6f, 1f));
 	}
-	public bool IsSelected => _isSelected;
+
+	private void HandleHealing(float delta)
+	{
+		if (_base == null || !IsInstanceValid(_base) || !_base.IsInHealZone(GlobalPosition)) return;
+
+		_health.Heal(_base.CurrentHealRate * delta);
+		if (Demoralized)
+		{
+			SetDemoralized(false);
+			GameManager.Instance.Radio($"{_stats.Name} recuperó la moral en la base.", RadioKind.Good);
+		}
+	}
+
+	private void Shoot()
+	{
+		_attackTimer = Cooldown;
+		float damage = Damage;
+		Vector2 impact = _target.GlobalPosition;
+
+		DealDamage(_target, damage);
+
+		if (_stats.SplashRadius > 0f)
+		{
+			foreach (Node2D enemy in Combat.InRadius(GetTree(), "enemies", impact, _stats.SplashRadius))
+			{
+				if (enemy != _target) DealDamage(enemy, damage * 0.6f);
+			}
+			Effects.Blast(impact, _stats.SplashRadius, new Color(1f, 0.6f, 0.2f));
+		}
+
+		Effects.Shot(GlobalPosition, impact, _stats.ShotColor, _stats.ShotWidth);
+	}
+
+	private void DealDamage(Node2D enemy, float damage)
+	{
+		var health = Combat.GetHealth(enemy);
+		if (health == null || health.IsDead) return;
+		GameManager.Instance.Stats.DamageDealt += Mathf.Min(damage * health.DamageTakenMultiplier, health.CurrentHealth);
+		bool killed = health.TakeDamage(damage);
+		if (killed && GameManager.Instance.KillHeal > 0f)
+			_health.Heal(GameManager.Instance.KillHeal);
+	}
+
+	private bool IsValidEnemy(Node2D enemy) => enemy != null && IsInstanceValid(enemy) && Combat.IsAlive(enemy);
+
+	private Node2D FindClosestEnemy()
+	{
+		Node2D closest = null;
+		float best = Range;
+		foreach (Node node in GetTree().GetNodesInGroup("enemies"))
+		{
+			if (node is not Node2D enemy || !Combat.IsAlive(enemy)) continue;
+			float distance = GlobalPosition.DistanceTo(enemy.GlobalPosition);
+			if (distance <= best)
+			{
+				best = distance;
+				closest = enemy;
+			}
+		}
+		return closest;
+	}
+
+	private bool HasLeaderNearby()
+	{
+		if (SquadId == 0 || IsLeader || SquadManager.Instance == null) return false;
+		Soldier leader = SquadManager.Instance.GetLeader(SquadId);
+		return leader != null && leader.GlobalPosition.DistanceTo(GlobalPosition) <= LeaderAuraRadius;
+	}
+
+	private void UpdateMoveLine(Vector2 targetPosition, Color color)
+	{
+		_moveLine.ClearPoints();
+		_moveLine.DefaultColor = color;
+		_moveLine.AddPoint(Vector2.Zero);
+		_moveLine.AddPoint(targetPosition - GlobalPosition);
+	}
+
+	private void UpdateSquadLabel()
+	{
+		if (_squadLabel == null) return;
+		string text = SquadId > 0 ? (IsLeader ? $"★{SquadId}" : SquadId.ToString()) : "";
+		if (Demoralized) text += " ▼";
+		_squadLabel.Text = text;
+		_squadLabel.AddThemeColorOverride("font_color", IsLeader ? new Color(1f, 0.85f, 0.3f) : new Color(0.75f, 0.95f, 0.6f));
+	}
+
+	private void OnHealthChanged(float current, float max)
+	{
+		_healthBar.MaxValue = max;
+		_healthBar.Value = current;
+	}
+
+	private void OnPerksChanged()
+	{
+		_health.SetMaxHealth(_stats.MaxHealth * GameManager.Instance.UnitHealthMultiplier, false);
+		_move.Speed = _stats.Speed * GameManager.Instance.SpeedMultiplier;
+	}
+
+	private void RotateTowards(Vector2 worldPoint, float delta)
+	{
+		float targetAngle = (worldPoint - GlobalPosition).Angle() + Mathf.Pi / 2f;
+		_visualNode.Rotation = Mathf.LerpAngle(_visualNode.Rotation, targetAngle, delta * 10f);
+	}
+
+	private static Vector2 ClampToMap(Vector2 position)
+	{
+		return new Vector2(Mathf.Clamp(position.X, 24, GameData.MapWidth - 24), Mathf.Clamp(position.Y, 24, GameData.MapHeight - 24));
+	}
+
+	private void OnDied()
+	{
+		ClearTask();
+		GameManager.Instance.Stats.UnitsLost++;
+		GameManager.Instance.Radio($"¡Baja! Perdimos un {_stats.Name}.", RadioKind.Danger);
+		SquadManager.Instance?.OnSoldierDied(this);
+		QueueFree();
+	}
 }
